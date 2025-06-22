@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   const { otp, email } = parsedBody.data;
   try {
     await connectToDatabase();
-    const isEmailExists = await User.exists({ email, emailVerified: true });
+    const isEmailExists = await User.exists({ email });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
