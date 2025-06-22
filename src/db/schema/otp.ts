@@ -4,6 +4,7 @@ export interface IOtp extends Document {
   _id: string;
   email: string;
   otp: string;
+  expiresAt?: Date; // Optional field to store expiration time of the OTP
   createdAt: Date;
   updatedAt: Date;
 }
@@ -12,6 +13,7 @@ const OtpSchema: Schema = new Schema<IOtp>(
   {
     email: { type: String, required: true },
     otp: { type: String, required: true },
+    expiresAt: { type: Date, required: true, default: () => new Date(Date.now() + 10 * 60 * 1000) }, // Default to 10 minutes from now
   },
   {
     timestamps: true,

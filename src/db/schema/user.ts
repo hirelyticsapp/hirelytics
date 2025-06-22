@@ -19,7 +19,7 @@ const UserSchema: Schema = new Schema<IUser>(
     name: { type: String, required: true },
     role: { type: String, required: true, default: 'user' },
     email: { type: String, required: true },
-    emailVerified: { type: Boolean, required: true },
+    emailVerified: { type: Boolean, required: true, default: false },
     image: { type: String },
     deletedAt: { type: Date, default: null },
   },
@@ -45,6 +45,14 @@ const UserSchema: Schema = new Schema<IUser>(
     },
   }
 );
+
+UserSchema.pre('save', function (next) {
+  if (this.deletedAt === undefined) {
+    this.deletedAt = null;
+  }
+  next();
+});
+
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
 export default User;

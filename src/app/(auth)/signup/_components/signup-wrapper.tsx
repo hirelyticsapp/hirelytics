@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
+import ky from 'ky';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -10,13 +11,14 @@ export function SignupWrapper() {
   const router = useRouter();
   const createUserMutation = useMutation({
     mutationFn: async (data: { email: string; name: string }) => {
-      // Replace with your actual user creation logic
-      console.log('Creating user:', data);
-      return Promise.resolve(data);
+      return await ky
+        .post('/api/auth/candidate/signup', {
+          json: data,
+        })
+        .json();
     },
     onSuccess: () => {
       toast.success('User created successfully!');
-      router.push('/console'); // Redirect to dashboard or home page after successful signup
     },
     onError: (error) => {
       if (error instanceof Error) {
@@ -40,9 +42,31 @@ export function SignupWrapper() {
     });
   };
 
+  const otpValidateMutation = useMutation({
+    mutationFn: async (data: { otp: string; email: string }) => {
+      return await ky
+        .post('/api/auth/candidate/verify-otp', {
+          json: data,
+        })
+        .json();
+    },
+    onSuccess: () => {
+      toast.success('OTP verified successfully!');
+    },
+    onError: (error) => {
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to verify OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while verifying OTP. Please try again later.');
+      }
+    },
+  });
+
   const handleOtpSubmit = async (data: { otp: string; email: string }) => {
     try {
-      router.push('/'); // Redirect to dashboard or home page after successful login
+      await otpValidateMutation.mutateAsync(data);
+      toast.success('OTP verified successfully!');
+      router.push('/'); // Redirect to home or dashboard after successful verification
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message || 'Failed to verify OTP. Please try again.');
