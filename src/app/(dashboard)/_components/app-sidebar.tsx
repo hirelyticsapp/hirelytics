@@ -63,8 +63,8 @@ const navigation = [
         color: 'text-orange-500',
       },
       {
-        title: 'Portal Requests',
-        url: '/portal-requests',
+        title: 'Portal Access Requests',
+        url: '/portal-access-requests',
         icon: IconBasketQuestion,
         color: 'text-orange-500',
       },
