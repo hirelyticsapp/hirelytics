@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/db';
 import Otp from '@/db/schema/otp';
 import User from '@/db/schema/user';
+import { setAuthCookieInResponse } from '@/lib/auth/cookies';
 import { createUserSession } from '@/lib/auth/server';
 
 const verifyEmailOtp = z.object({
@@ -54,14 +55,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createUserSession(isEmailExists, request);
-
-    return NextResponse.json(
-      { success: true, message: 'OTP verified successfully' },
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const token = await createUserSession(isEmailExists, request);
+    return setAuthCookieInResponse(
+      NextResponse.json(
+        { success: true, message: 'OTP verified successfully' },
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ),
+      token
     );
   } catch (error) {
     console.error('Error verifying email OTP:', error);

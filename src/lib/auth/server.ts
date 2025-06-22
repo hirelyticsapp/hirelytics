@@ -5,7 +5,7 @@ import { connectToDatabase } from '@/db';
 import Session from '@/db/schema/session';
 import User, { IUser } from '@/db/schema/user';
 
-import { getAuthCookie, removeAuthCookie, setAuthCookie } from './cookies';
+import { getAuthCookie, removeAuthCookie } from './cookies';
 import { generateSessionToken, getTokenExpiry } from './jwt';
 
 export type AuthUser = IUser;
@@ -50,7 +50,7 @@ export async function createUserSession(user: AuthUser, req?: NextRequest): Prom
       isActive: true,
     });
 
-    setAuthCookie(token);
+    // Don't set cookie here - let the route handler do it
     return token;
   } catch (error) {
     console.error('Session creation error:', error);
