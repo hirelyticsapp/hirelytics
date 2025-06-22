@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 
 import { AuthCard } from '@/components/ui/auth-card';
+import { Spinner } from '@/components/ui/spinner';
 
 import EmailPhase from './email-phase';
 import OtpPhase from './otp-phase';
@@ -213,7 +214,7 @@ export default function CentralLoginForm() {
       </AuthCard>
 
       {/* Loading overlay */}
-      {/* {isAnyLoading && (
+      {isAnyLoading && (
         <div className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
           <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
             <Spinner size="md" />
@@ -225,7 +226,7 @@ export default function CentralLoginForm() {
             </span>
           </div>
         </div>
-      )} */}
+      )}
     </div>
   );
 }

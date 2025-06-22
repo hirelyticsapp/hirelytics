@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
+    console.log('Error in user signup:', error);
     return NextResponse.json(
       { success: false, message: 'Internal Server Error. Please contact support.' },
       {
