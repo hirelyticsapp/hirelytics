@@ -38,13 +38,14 @@ export async function fetchUsers(
       .skip(skip)
       .limit(limit)
       .sort(sorting.length > 0 ? { [sorting[0].id]: sorting[0].desc ? -1 : 1 } : {})
-      .select('name email role createdAt updatedAt')
+      .select('name email role emailVerified createdAt updatedAt')
       .then((users) =>
         users.map((user) => ({
           id: user._id.toString(),
           name: user.name,
           role: user.role,
           email: user.email,
+          emailVerified: user.emailVerified,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         }))
@@ -57,4 +58,54 @@ export async function fetchUsers(
     totalCount,
     pageCount: Math.ceil(totalCount / limit),
   };
+}
+
+export async function createUser(data: Partial<IUser>): Promise<Partial<IUser>> {
+  await connectToDatabase();
+
+  const user = new User(data);
+  await user.save();
+
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+export async function updateUser(id: string, data: Partial<IUser>): Promise<Partial<IUser>> {
+  await connectToDatabase();
+
+  const user = await User.findByIdAndUpdate(id, { $set: data }, { new: true });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    emailVerified: user.emailVerified,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await connectToDatabase();
+
+  const result = await User.findByIdAndDelete(id, {
+    deletedAt: new Date(),
+  });
+
+  if (!result) {
+    throw new Error('User not found');
+  }
+
+  console.log(`User with id ${id} deleted successfully.`);
 }

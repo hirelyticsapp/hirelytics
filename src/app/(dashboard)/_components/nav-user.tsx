@@ -33,8 +33,6 @@ export function NavUser() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  console.log('NavUser rendered', user);
-
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
       case 'admin':
