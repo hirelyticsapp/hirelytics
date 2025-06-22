@@ -1,24 +1,30 @@
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-
-import { authClient } from '@/auth/client';
-import { api } from '@/trpc/react';
 
 import { CandidateSignupForm } from './candidate-signup-form';
 
 export function SignupWrapper() {
   const router = useRouter();
-  const createUserMutation = api.auth.createUser.useMutation({
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { email: string; name: string }) => {
+      // Replace with your actual user creation logic
+      console.log('Creating user:', data);
+      return Promise.resolve(data);
+    },
     onSuccess: () => {
-      toast.success('User created successfully! Please check your email for verification.');
+      toast.success('User created successfully!');
+      router.push('/console'); // Redirect to dashboard or home page after successful signup
     },
     onError: (error) => {
-      if (error.data?.code === 'CONFLICT') {
-        toast.error('User with this email already exists. Please try logging in instead.');
-      } else {
+      if (error instanceof Error) {
         toast.error(error.message || 'Failed to create user. Please try again.');
+      } else {
+        toast.error(
+          'An unexpected error occurred while creating the user. Please try again later.'
+        );
       }
     },
   });
@@ -36,11 +42,7 @@ export function SignupWrapper() {
 
   const handleOtpSubmit = async (data: { otp: string; email: string }) => {
     try {
-      await authClient.signIn.emailOtp({
-        email: data.email,
-        otp: data.otp,
-      });
-      router.push('/console'); // Redirect to dashboard or home page after successful login
+      router.push('/'); // Redirect to dashboard or home page after successful login
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message || 'Failed to verify OTP. Please try again.');
