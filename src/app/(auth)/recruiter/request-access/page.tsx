@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 
 import { RadialGradientBackground } from '@/components/ui/radial-gradient-background';
 
-import { RequestAccessForm } from './_components/request-access-form';
+import { RequestAccessRequestForm } from './_components/request-access-form';
 
 export default function RecruiterRequestAccessPage() {
   return (
@@ -33,7 +33,7 @@ export default function RecruiterRequestAccessPage() {
         {/* Request access form */}
         <div className="max-w-2xl mx-auto">
           <Suspense fallback={<div className="text-center">Loading...</div>}>
-            <RequestAccessForm />
+            <RequestAccessRequestForm />
           </Suspense>
         </div>
 

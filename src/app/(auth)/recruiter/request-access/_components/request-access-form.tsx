@@ -1,10 +1,13 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { AuthCard } from '@/components/ui/auth-card';
 import { Button } from '@/components/ui/button';
@@ -25,13 +28,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { createPortalAccessRequestSchema } from '@/schema/recruiter';
 
-export function RequestAccessForm() {
+type RequestAccessFormData = z.infer<typeof createPortalAccessRequestSchema>;
+
+export function RequestAccessRequestForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const form = useForm<RequestAccessFormData>({
-    resolver: zodResolver(requestAccessSchema),
+    resolver: zodResolver(createPortalAccessRequestSchema),
     defaultValues: {
       full_name: '',
       work_email: '',
@@ -46,12 +52,28 @@ export function RequestAccessForm() {
     },
   });
 
-  const createPortalRequest = useCreatePortalRequest();
+  const createPortalAccessRequestRequest = useMutation({
+    mutationFn: async (data: RequestAccessFormData) => {
+      return await axios.post('/api/auth/recruiter/portal-access-request', data);
+    },
+    onSuccess: () => {
+      toast.success('Request submitted successfully!');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to submit request. Please try again.');
+      } else {
+        toast.error(
+          'An unexpected error occurred while submitting the request. Please try again later.'
+        );
+      }
+    },
+  });
 
   const handleSubmit = async (data: RequestAccessFormData) => {
     setIsLoading(true);
     try {
-      await createPortalRequest.mutateAsync(data);
+      await createPortalAccessRequestRequest.mutateAsync(data);
       setIsSubmitted(true);
     } catch (error) {
       console.error('Request submission failed:', error);
