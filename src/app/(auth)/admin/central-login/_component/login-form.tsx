@@ -1,4 +1,6 @@
 'use client';
+import { useMutation } from '@tanstack/react-query';
+import ky from 'ky';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -16,29 +18,82 @@ export default function CentralLoginForm() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const router = useRouter();
 
+  const handleVerifyIntOtp = useMutation({
+    mutationFn: async (otp: string) => {
+      return await ky
+        .post('/api/auth/admin/verify-init-otp', {
+          json: { otp },
+        })
+        .json();
+    },
+    onSuccess: () => {
+      setPhase('email');
+      toast.success('Security key verified successfully!');
+    },
+    onError: (error) => {
+      console.error('Error verifying security key:', error);
+      toast.error('Failed to verify security key. Please try again.');
+    },
+  });
+
   const handleOtp1Submit = async (otp: string) => {
     try {
-      console.log('First OTP:', otp);
-      setPhase('email');
+      await handleVerifyIntOtp.mutateAsync(otp);
     } catch (error) {
       console.error('OTP verification error:', error);
     }
   };
 
+  const handleSendEmailOtp = useMutation({
+    mutationFn: async (email: string) => {
+      return await ky
+        .post('/api/auth/admin/send-email-otp', {
+          json: { email },
+        })
+        .json();
+    },
+    onSuccess: () => {
+      setPhase('otp2');
+      toast.success('Verification code sent to your email!');
+    },
+    onError: (error) => {
+      console.error('Error sending email OTP:', error);
+      toast.error('Failed to send verification code. Please try again.');
+    },
+  });
+
   const handleEmailSubmit = async (email: string) => {
     try {
       setUserEmail(email);
-      setPhase('otp2');
+      await handleSendEmailOtp.mutateAsync(email);
     } catch (error) {
       console.error('Email submission error:', error);
     }
   };
 
+  const handleVerifyEmailOtp = useMutation({
+    mutationFn: async (otp: string) => {
+      return await ky
+        .post('/api/auth/admin/verify-email-otp', {
+          json: { otp, email: userEmail },
+        })
+        .json();
+    },
+    onSuccess: () => {
+      setPhase('complete');
+      toast.success('Email verified successfully!');
+      router.push('/');
+    },
+    onError: (error) => {
+      console.error('Error verifying email OTP:', error);
+      toast.error('Failed to verify email OTP. Please try again.');
+    },
+  });
+
   const handleOtp2Submit = async (_otp: string) => {
     setIsAuthLoading(true);
     try {
-      toast.success('Login successful! Redirecting to dashboard...');
-      router.push('/');
+      await handleVerifyEmailOtp.mutateAsync(_otp);
     } catch (error) {
       console.error('Final OTP verification error:', error);
     } finally {

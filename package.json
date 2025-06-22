@@ -68,6 +68,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "ky": "^1.8.1",
     "lucide-react": "^0.522.0",
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.2",
