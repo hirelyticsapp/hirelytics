@@ -208,7 +208,7 @@ export default function CentralLoginForm() {
             onResend={handleResendOtp}
             isLoading={isOtp2Loading}
             loadingText="Completing authentication..."
-            // isResending={isResendLoading}
+            isResending={isResendLoading}
           />
         )}
       </AuthCard>
