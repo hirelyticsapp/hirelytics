@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     await Otp.create({ email, otp });
 
     return NextResponse.json(
-      { success: true, message: 'OTP sent successfully', otp },
+      { success: true, message: 'OTP sent successfully' },
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

@@ -5,13 +5,13 @@ import { connectToDatabase } from '@/db';
 import Otp from '@/db/schema/otp';
 import User from '@/db/schema/user';
 
-const candidateLoginSchema = z.object({
+const recruiterLoginSchema = z.object({
   email: z.string().email('Invalid email format'),
 });
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const parsedBody = candidateLoginSchema.safeParse(body);
+  const parsedBody = recruiterLoginSchema.safeParse(body);
   if (!parsedBody.success) {
     return NextResponse.json(
       { success: false, message: 'Invalid request data', errors: parsedBody.error.errors },
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const { email } = parsedBody.data;
-    const isEmailExists = await User.exists({ email, emailVerified: true, role: 'user' });
+    const isEmailExists = await User.exists({ email, emailVerified: true, role: 'recruiter' });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },

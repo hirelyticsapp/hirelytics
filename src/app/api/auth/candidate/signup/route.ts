@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
     await Otp.create({ email: user.email, otp, role: 'user' });
 
-    return NextResponse.json({ success: true }); // Include OTP in response for testing/frontend integration
+    return NextResponse.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: 'Internal Server Error. Please contact support.' },

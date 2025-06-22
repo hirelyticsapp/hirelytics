@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   const { otp, email } = parsedBody.data;
   try {
     await connectToDatabase();
-    const isEmailExists = await User.exists({ email, role: 'user' });
+    const isEmailExists = await User.exists({ email, role: 'recruiter' });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await User.updateOne({ email, role: 'user' }, { emailVerified: true });
+    await User.updateOne({ email, role: 'recruiter' }, { emailVerified: true });
     await Otp.deleteMany({ email });
 
     return NextResponse.json(

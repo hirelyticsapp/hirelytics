@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -56,9 +58,42 @@ export function RecruiterLoginForm() {
     },
   });
 
+  const handleLogin = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      return await axios.post('/api/auth/recruiter/login', data);
+    },
+    onSuccess: () => {
+      toast.success('OTP sent successfully! Please check your email.');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to send OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while sending OTP. Please try again later.');
+      }
+    },
+  });
+
+  const otpValidateMutation = useMutation({
+    mutationFn: async (data: { otp: string; email: string }) => {
+      return await axios.post('/api/auth/recruiter/verify-otp', data);
+    },
+    onSuccess: () => {
+      toast.success('OTP verified successfully!');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to verify OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while verifying OTP. Please try again later.');
+      }
+    },
+  });
+
   const handleEmailSubmit = async (data: EmailFormData) => {
     setIsLoading(true);
     try {
+      await handleLogin.mutateAsync({ email: data.email });
       setEmail(data.email);
       setIsOtpStep(true);
     } catch (error) {
@@ -68,9 +103,13 @@ export function RecruiterLoginForm() {
     }
   };
 
-  const handleOtpSubmit = async (_data: OtpFormData) => {
+  const handleOtpSubmit = async (data: OtpFormData) => {
     setIsLoading(true);
     try {
+      await otpValidateMutation.mutateAsync({
+        otp: data.otp,
+        email,
+      });
       toast.success('Login successful! Redirecting...');
       router.push('/');
     } catch (error) {
