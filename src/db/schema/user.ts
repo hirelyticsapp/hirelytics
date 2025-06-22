@@ -9,6 +9,7 @@ export interface IUser extends Document {
   email: string;
   emailVerified: boolean;
   image: string;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +21,7 @@ const UserSchema: Schema = new Schema<IUser>(
     email: { type: String, required: true },
     emailVerified: { type: Boolean, required: true },
     image: { type: String },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
