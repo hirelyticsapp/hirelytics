@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/lintstagedrc.schema.json",
+  "**/*.{ts,tsx}": [
+    "prettier --write",
+    "eslint --fix"
+  ],
+  "**/*.{js,jsx}": [
+    "prettier --write",
+    "eslint --fix"
+  ],
+  "**/*.{json,css,scss,html,md,yaml,yml}": [
+    "prettier --write"
+  ],
+  "**/package.json": [
+    "prettier --write"
+  ],
+  "!**/node_modules/**": [],
+  "!**/.next/**": [],
+  "!**/.turbo/**": [],
+  "!**/dist/**": [],
+  "!**/build/**": []
+}

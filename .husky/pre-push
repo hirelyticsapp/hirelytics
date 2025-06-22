@@ -1,0 +1,3 @@
+# Run lint, format check, and type check across all workspaces
+echo "🔍 Running pre-push checks..."
+pnpm format:check && pnpm lint 

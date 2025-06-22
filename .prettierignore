@@ -1,0 +1,7 @@
+.next
+.turbo
+.husky
+node_modules
+dist
+build
+pnpm-lock.yaml
