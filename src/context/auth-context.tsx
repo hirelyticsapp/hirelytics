@@ -1,5 +1,7 @@
+'use client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 import { createContext } from 'react';
 
 import { ISession, IUser } from '@/db';
@@ -14,6 +16,7 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const fetchSessionQuery = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -28,8 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data;
     },
     onSuccess: () => {
-      // Optionally, you can invalidate the session query to refetch after logout
       fetchSessionQuery.refetch();
+      router.refresh();
     },
   });
 
