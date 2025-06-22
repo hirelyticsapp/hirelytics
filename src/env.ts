@@ -1,0 +1,55 @@
+import { createEnv } from '@t3-oss/env-nextjs';
+import { z } from 'zod';
+
+export const env = createEnv({
+  server: {
+    NODE_ENV: z.enum(['development', 'test', 'production']),
+    APP_NAME: z.string().default('Hirelytics'),
+    APP_URL: z.string().url(),
+    APP_DOMAIN: z.string().default('hirelytics.app'),
+    PORT: z.coerce.number().default(3000),
+    DATABASE_URL: z.string().url(),
+    AUTH_SECRET: z.string(),
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    MICROSOFT_CLIENT_ID: z.string().min(1),
+    MICROSOFT_CLIENT_SECRET: z.string().min(1),
+    ADMIN_SECRET_KEY: z.string().min(1),
+    AUTH_DOMAIN: z.string().url().default('https://console.hirelytics.app'),
+    PRODUCTION_APP_DOMAIN: z.string().default('hirelytics.app'),
+    PRODUCTION_APP_URL: z.string().url().default('https://hirelytics.app'),
+    DEV_TRUSTED_ORIGINS: z
+      .string()
+      .default('http://console.localhost.me,http://console.hirelytics.me'),
+    DEV_COOKIE_DOMAINS: z.string().default('.localhost.me,.hirelytics.app,.hirelytics.me'),
+    OTP_ISSUER: z.string().default('Hirelytics'),
+    OTP_ACCOUNT_NAME: z.string().default('admin@hirelytics.app'),
+  },
+  client: {
+    NEXT_PUBLIC_APP_DOMAIN: z.string().default('hirelytics.app'),
+    NEXT_PUBLIC_APP_URL: z.string().url().default('https://hirelytics.app'),
+  },
+  runtimeEnv: {
+    APP_NAME: process.env.APP_NAME,
+    APP_DOMAIN: process.env.APP_DOMAIN,
+    NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL: process.env.DATABASE_URL,
+    APP_URL: process.env.APP_URL,
+    PORT: process.env.PORT,
+    AUTH_SECRET: process.env.AUTH_SECRET,
+    NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    MICROSOFT_CLIENT_ID: process.env.MICROSOFT_CLIENT_ID,
+    MICROSOFT_CLIENT_SECRET: process.env.MICROSOFT_CLIENT_SECRET,
+    ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY,
+    PRODUCTION_APP_DOMAIN: process.env.PRODUCTION_APP_DOMAIN,
+    PRODUCTION_APP_URL: process.env.PRODUCTION_APP_URL,
+    DEV_TRUSTED_ORIGINS: process.env.DEV_TRUSTED_ORIGINS,
+    DEV_COOKIE_DOMAINS: process.env.DEV_COOKIE_DOMAINS,
+    OTP_ISSUER: process.env.OTP_ISSUER,
+    OTP_ACCOUNT_NAME: process.env.OTP_ACCOUNT_NAME,
+    AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+  },
+});
