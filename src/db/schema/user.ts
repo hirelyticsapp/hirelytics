@@ -4,6 +4,7 @@ import mongoose, { Schema } from 'mongoose';
 export interface IUser extends Document {
   _doc: IUser;
   _id: string;
+  id: string; // Virtual field for cleaner API responses
   name: string;
   role: 'user' | 'recruiter' | 'admin';
   email: string;

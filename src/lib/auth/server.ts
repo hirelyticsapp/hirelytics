@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest } from 'next/server';
 
 import { connectToDatabase } from '@/db';
-import Session from '@/db/schema/session';
+import Session, { ISession } from '@/db/schema/session';
 import User, { IUser } from '@/db/schema/user';
 
 import { getAuthCookie, removeAuthCookie } from './cookies';
@@ -10,22 +10,10 @@ import { generateSessionToken, getTokenExpiry } from './jwt';
 
 export type AuthUser = IUser;
 
-export interface AuthContext {
-  user: AuthUser | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (
-    email: string,
-    password: string,
-    name: string
-  ) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  refreshAuth: () => Promise<void>;
-  updateProfile: (data: {
-    name?: string;
-    email?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-}
+export type UserSession = {
+  user: AuthUser;
+  session: ISession;
+};
 
 // Extend NextApiRequest to include user
 declare module 'next' {
@@ -58,7 +46,7 @@ export async function createUserSession(user: AuthUser, req?: NextRequest): Prom
   }
 }
 
-export async function getUserFromSession(): Promise<AuthUser | null> {
+export async function getUserFromSession(): Promise<UserSession | null> {
   await connectToDatabase();
 
   const token = await getAuthCookie();
@@ -78,7 +66,10 @@ export async function getUserFromSession(): Promise<AuthUser | null> {
       return null;
     }
 
-    return user;
+    return {
+      user: user,
+      session: session as ISession,
+    };
   } catch (error) {
     console.error('Session validation error:', error);
     return null;
@@ -116,7 +107,7 @@ export function requireAuth(handler: Function) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    req.user = user;
+    req.user = user.user;
     return handler(req, res);
   };
 }
@@ -147,4 +138,25 @@ export async function cleanupExpiredSessions(): Promise<number> {
     console.error('Session cleanup error:', error);
     return 0;
   }
+}
+
+export async function auth() {
+  const userSession = await getUserFromSession();
+  if (!userSession) {
+    return {
+      user: null,
+      session: null,
+      isAuthenticated: false,
+      isAdmin: false,
+      isRecruiter: false,
+      isUser: false,
+    };
+  }
+  return {
+    ...userSession,
+    isAuthenticated: true,
+    isAdmin: userSession.user.role === 'admin',
+    isRecruiter: userSession.user.role === 'recruiter',
+    isUser: userSession.user.role === 'user',
+  };
 }

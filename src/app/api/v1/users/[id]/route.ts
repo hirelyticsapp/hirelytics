@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/db';
 import User from '@/db/schema/user';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
-    const user = await User.findOne({ _id: params.id, deletedAt: null });
+    const { id } = await params;
+    const user = await User.findOne({ _id: id, deletedAt: null });
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'User not found or deleted' },
@@ -26,11 +27,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
     const userData = await req.json();
-    const user = await User.findByIdAndUpdate(params.id, userData, { new: true });
+    const { id } = await params;
+    const user = await User.findByIdAndUpdate(id, userData, { new: true });
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
@@ -46,10 +48,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     );
   }
 }
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
-    const user = await User.findById(params.id);
+    const { id } = await params;
+    const user = await User.findById(id);
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
