@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -45,7 +47,37 @@ export function CandidateLoginForm() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const router = useRouter();
 
-  // tRPC mutations
+  const handleLogin = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      return await axios.post('/api/auth/candidate/login', data);
+    },
+    onSuccess: () => {
+      toast.success('OTP sent successfully! Please check your email.');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to send OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while sending OTP. Please try again later.');
+      }
+    },
+  });
+
+  const otpValidateMutation = useMutation({
+    mutationFn: async (data: { otp: string; email: string }) => {
+      return await axios.post('/api/auth/candidate/verify-otp', data);
+    },
+    onSuccess: () => {
+      toast.success('OTP verified successfully!');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to verify OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while verifying OTP. Please try again later.');
+      }
+    },
+  });
 
   const emailForm = useForm<EmailFormData>({
     resolver: zodResolver(emailSchema),
@@ -68,6 +100,7 @@ export function CandidateLoginForm() {
 
   const handleEmailSubmit = async (data: EmailFormData) => {
     try {
+      await handleLogin.mutateAsync({ email: data.email });
       setUserEmail(data.email);
       setIsOtpStep(true);
     } catch (error) {
@@ -75,9 +108,10 @@ export function CandidateLoginForm() {
     }
   };
 
-  const handleOtpSubmit = async (_data: OtpFormData) => {
+  const handleOtpSubmit = async (data: OtpFormData) => {
     setIsAuthLoading(true);
     try {
+      await otpValidateMutation.mutateAsync({ otp: data.otp, email: userEmail });
       toast.success('Login successful! Redirecting...');
       router.push('/');
     } catch (error) {

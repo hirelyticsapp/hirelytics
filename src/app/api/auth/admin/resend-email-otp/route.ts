@@ -5,14 +5,13 @@ import { connectToDatabase } from '@/db';
 import Otp from '@/db/schema/otp';
 import User from '@/db/schema/user';
 
-const sendEmailOtpSchema = z.object({
+const resendEmailOtpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
 });
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parsedBody = sendEmailOtpSchema.safeParse(body);
+    const parsedBody = resendEmailOtpSchema.safeParse(body);
 
     if (!parsedBody.success) {
       return NextResponse.json(
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const isEmailExists = await User.exists({ email, emailVerified: true, role: 'admin' });
+    const isEmailExists = await User.exists({ email, emailVerified: true });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await Otp.deleteMany({ email });
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
     console.log({
       email,

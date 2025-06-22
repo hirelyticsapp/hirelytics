@@ -79,17 +79,10 @@ export function CandidateSignupForm({
   });
 
   const handleSignupSubmit = async (data: SignupFormData) => {
-    setLoadingState({ action: 'signup', message: 'Creating your account...' });
-    try {
-      await onSignupSubmit(data);
-      setUserEmail(data.email);
-      setUserName(data.name);
-      setIsOtpStep(true);
-    } catch (error) {
-      console.error('Signup submission failed:', error);
-    } finally {
-      setLoadingState({ action: null, message: '' });
-    }
+    await onSignupSubmit(data);
+    setUserEmail(data.email);
+    setUserName(data.name);
+    setIsOtpStep(true);
   };
 
   const handleOtpSubmit = async (data: OtpFormData) => {

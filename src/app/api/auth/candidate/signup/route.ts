@@ -24,40 +24,38 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const isEmailExists = await User.findOne({ email: parsedBody.data.email });
+    let user = isEmailExists;
     if (isEmailExists && isEmailExists.emailVerified === true) {
       return NextResponse.json(
-        { success: false, message: 'Email already exists' },
+        { success: false, message: 'Email is already verified and exists in the system' },
         { status: 409, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    let user = isEmailExists;
-
-    if (!(isEmailExists && isEmailExists.emailVerified === true)) {
-      user = await User.create(parsedBody.data);
+    if (!isEmailExists) {
+      user = await User.create({
+        name: parsedBody.data.name,
+        email: parsedBody.data.email,
+        role: 'user',
+        emailVerified: false,
+      });
     }
-
-    console.log('Creating user:', parsedBody.data, user);
 
     if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Failed to create user' },
+        { success: false, message: 'Failed to create user. Please try again later.' },
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    await Otp.deleteMany({ email: user.email }); // Clear any existing OTPs for the user
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
     await Otp.create({ email: user.email, otp, role: 'user' });
-    console.log({
-      email: user.email,
-      otp,
-      message: 'Sending OTP to email',
-    });
-    return NextResponse.json({ success: true, data: user });
+
+    return NextResponse.json({ success: true }); // Include OTP in response for testing/frontend integration
   } catch (error) {
-    console.error('Error creating user:', error);
     return NextResponse.json(
-      { success: false, message: 'Internal Server Error' },
+      { success: false, message: 'Internal Server Error. Please contact support.' },
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

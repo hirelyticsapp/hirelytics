@@ -1,6 +1,6 @@
 'use client';
 import { useMutation } from '@tanstack/react-query';
-import ky from 'ky';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -20,19 +20,18 @@ export default function CentralLoginForm() {
 
   const handleVerifyIntOtp = useMutation({
     mutationFn: async (otp: string) => {
-      return await ky
-        .post('/api/auth/admin/verify-init-otp', {
-          json: { otp },
-        })
-        .json();
+      return await axios.post('/api/auth/admin/verify-init-otp', { otp });
     },
     onSuccess: () => {
       setPhase('email');
       toast.success('Security key verified successfully!');
     },
     onError: (error) => {
-      console.error('Error verifying security key:', error);
-      toast.error('Failed to verify security key. Please try again.');
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to verify OTP. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while verifying OTP. Please try again later.');
+      }
     },
   });
 
@@ -46,19 +45,24 @@ export default function CentralLoginForm() {
 
   const handleSendEmailOtp = useMutation({
     mutationFn: async (email: string) => {
-      return await ky
-        .post('/api/auth/admin/send-email-otp', {
-          json: { email },
-        })
-        .json();
+      return await axios.post('/api/auth/admin/send-email-otp', {
+        email,
+      });
     },
     onSuccess: () => {
       setPhase('otp2');
       toast.success('Verification code sent to your email!');
     },
     onError: (error) => {
-      console.error('Error sending email OTP:', error);
-      toast.error('Failed to send verification code. Please try again.');
+      if (error instanceof AxiosError) {
+        toast.error(
+          error?.response?.data.message || 'Failed to send verification code. Please try again.'
+        );
+      } else {
+        toast.error(
+          'An unexpected error occurred while sending verification code. Please try again later.'
+        );
+      }
     },
   });
 
@@ -73,11 +77,10 @@ export default function CentralLoginForm() {
 
   const handleVerifyEmailOtp = useMutation({
     mutationFn: async (otp: string) => {
-      return await ky
-        .post('/api/auth/admin/verify-email-otp', {
-          json: { otp, email: userEmail },
-        })
-        .json();
+      return await axios.post('/api/auth/admin/verify-email-otp', {
+        otp,
+        email: userEmail,
+      });
     },
     onSuccess: () => {
       setPhase('complete');
@@ -85,8 +88,15 @@ export default function CentralLoginForm() {
       router.push('/');
     },
     onError: (error) => {
-      console.error('Error verifying email OTP:', error);
-      toast.error('Failed to verify email OTP. Please try again.');
+      if (error instanceof AxiosError) {
+        toast.error(
+          error?.response?.data.message || 'Failed to verify email OTP. Please try again.'
+        );
+      } else {
+        toast.error(
+          'An unexpected error occurred while verifying email OTP. Please try again later.'
+        );
+      }
     },
   });
 
@@ -101,9 +111,31 @@ export default function CentralLoginForm() {
     }
   };
 
+  const resendAdminEmailOtpMutation = useMutation({
+    mutationFn: async () => {
+      return await axios.post('/api/auth/admin/resend-email-otp', {
+        email: userEmail,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Verification code resent successfully!');
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        toast.error(
+          error?.response?.data.message || 'Failed to resend verification code. Please try again.'
+        );
+      } else {
+        toast.error(
+          'An unexpected error occurred while resending verification code. Please try again later.'
+        );
+      }
+    },
+  });
+
   const handleResendOtp = async () => {
     try {
-      console.log('Resending OTP to:', userEmail);
+      await resendAdminEmailOtpMutation.mutateAsync();
     } catch (error) {
       console.error('Resend OTP error:', error);
     }
@@ -135,11 +167,11 @@ export default function CentralLoginForm() {
   };
 
   // Determine loading states from mutations
-  // const isOtp1Loading = verifySecurityKeyValidationMutation.isPending;
-  // const isEmailLoading = sendAdminEmailOtpMutation.isPending;
+  const isOtp1Loading = handleVerifyIntOtp.isPending;
+  const isEmailLoading = handleSendEmailOtp.isPending;
   const isOtp2Loading = isAuthLoading;
-  // const isResendLoading = resendAdminEmailOtpMutation.isPending;
-  // const isAnyLoading = isOtp1Loading || isEmailLoading || isOtp2Loading || isResendLoading;
+  const isResendLoading = resendAdminEmailOtpMutation.isPending;
+  const isAnyLoading = isOtp1Loading || isEmailLoading || isOtp2Loading || isResendLoading;
 
   const currentContent = getPhaseContent();
 

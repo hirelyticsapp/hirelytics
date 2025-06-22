@@ -5,34 +5,24 @@ import { connectToDatabase } from '@/db';
 import Otp from '@/db/schema/otp';
 import User from '@/db/schema/user';
 
-const sendEmailOtpSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+const candidateLoginSchema = z.object({
+  email: z.string().email('Invalid email format'),
 });
 
 export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const parsedBody = candidateLoginSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      { success: false, message: 'Invalid request data', errors: parsedBody.error.errors },
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
-    const body = await req.json();
-    const parsedBody = sendEmailOtpSchema.safeParse(body);
-
-    if (!parsedBody.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid request data',
-          errors: parsedBody.error.errors,
-        },
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const { email } = parsedBody.data;
-
     await connectToDatabase();
-
-    const isEmailExists = await User.exists({ email, emailVerified: true, role: 'admin' });
+    const { email } = parsedBody.data;
+    const isEmailExists = await User.exists({ email, emailVerified: true, role: 'user' });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
@@ -42,7 +32,6 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-
     await Otp.deleteMany({ email });
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
     console.log({
@@ -51,7 +40,6 @@ export async function POST(req: NextRequest) {
       message: 'Sending OTP to email',
     });
     await Otp.create({ email, otp });
-
     return NextResponse.json(
       { success: true, message: 'OTP sent successfully', otp },
       {
@@ -60,13 +48,10 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error sending email OTP:', error);
+    console.error('Login error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal Server Error' },
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

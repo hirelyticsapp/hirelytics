@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'OTP not found for this email' },
         {
-          status: 404,
+          status: 401,
           headers: { 'Content-Type': 'application/json' },
         }
       );
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await User.updateOne({ email, role: 'user' }, { emailVerified: true });
     await Otp.deleteMany({ email });
 
     return NextResponse.json(

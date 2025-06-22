@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import ky from 'ky';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -11,18 +11,14 @@ export function SignupWrapper() {
   const router = useRouter();
   const createUserMutation = useMutation({
     mutationFn: async (data: { email: string; name: string }) => {
-      return await ky
-        .post('/api/auth/candidate/signup', {
-          json: data,
-        })
-        .json();
+      return await axios.post('/api/auth/candidate/signup', data);
     },
     onSuccess: () => {
       toast.success('User created successfully!');
     },
     onError: (error) => {
-      if (error instanceof Error) {
-        toast.error(error.message || 'Failed to create user. Please try again.');
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to create user. Please try again.');
       } else {
         toast.error(
           'An unexpected error occurred while creating the user. Please try again later.'
@@ -44,18 +40,14 @@ export function SignupWrapper() {
 
   const otpValidateMutation = useMutation({
     mutationFn: async (data: { otp: string; email: string }) => {
-      return await ky
-        .post('/api/auth/candidate/verify-otp', {
-          json: data,
-        })
-        .json();
+      return await axios.post('/api/auth/candidate/verify-otp', data);
     },
     onSuccess: () => {
       toast.success('OTP verified successfully!');
     },
     onError: (error) => {
-      if (error instanceof Error) {
-        toast.error(error.message || 'Failed to verify OTP. Please try again.');
+      if (error instanceof AxiosError) {
+        toast.error(error?.response?.data.message || 'Failed to verify OTP. Please try again.');
       } else {
         toast.error('An unexpected error occurred while verifying OTP. Please try again later.');
       }
