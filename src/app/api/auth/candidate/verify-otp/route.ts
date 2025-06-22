@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   const { otp, email } = parsedBody.data;
   try {
     await connectToDatabase();
-    const isEmailExists = await User.findOne({ email, role: 'recruiter' });
+    const isEmailExists = await User.findOne({ email, role: 'user' });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'OTP not found for this email' },
         {
-          status: 401,
+          status: 404,
           headers: { 'Content-Type': 'application/json' },
         }
       );
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await User.updateOne({ email, role: 'recruiter' }, { emailVerified: true });
     await Otp.deleteMany({ email });
     await createUserSession(isEmailExists, request);
+
     return NextResponse.json(
       { success: true, message: 'OTP verified successfully' },
       {

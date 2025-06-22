@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/db';
 import Otp from '@/db/schema/otp';
 import User from '@/db/schema/user';
+import { createUserSession } from '@/lib/auth/server';
 
 const verifyEmailOtp = z.object({
   otp: z.string().min(6, 'OTP must be 6 digits').max(6, 'OTP must be 6 digits'),
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   const { otp, email } = parsedBody.data;
   try {
     await connectToDatabase();
-    const isEmailExists = await User.exists({ email });
+    const isEmailExists = await User.findOne({ email });
     if (!isEmailExists) {
       return NextResponse.json(
         { success: false, message: 'Email does not exist' },
@@ -52,6 +53,8 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+
+    await createUserSession(isEmailExists, request);
 
     return NextResponse.json(
       { success: true, message: 'OTP verified successfully' },

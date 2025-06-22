@@ -9,6 +9,7 @@ export interface IUser extends Document {
   email: string;
   emailVerified: boolean;
   image: string;
+  lastLoginAt?: Date | null;
   deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;

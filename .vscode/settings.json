@@ -1,0 +1,45 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+  "tailwindCSS.experimental.configFile": "tailwind.config.js",
+  "tailwindCSS.includeLanguages": {
+    "css": "css"
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.validate": true,
+  "tailwindCSS.lint.invalidApply": "ignore",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "prettier.requireConfig": true,
+  "prettier.useEditorConfig": true,
+  "eslint.useFlatConfig": true,
+  "eslint.enable": true,
+  "eslint.run": "onType",
+  "eslint.debug": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "prettier.useTabs": false,
+  "prettier.tabWidth": 2,
+  "editor.renderWhitespace": "boundary",
+  "editor.renderControlCharacters": true,
+  "editor.detectIndentation": false,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

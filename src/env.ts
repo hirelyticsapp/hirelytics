@@ -24,6 +24,7 @@ export const env = createEnv({
     DEV_COOKIE_DOMAINS: z.string().default('.localhost.me,.hirelytics.app,.hirelytics.me'),
     OTP_ISSUER: z.string().default('Hirelytics'),
     OTP_ACCOUNT_NAME: z.string().default('admin@hirelytics.app'),
+    JWT_SECRET: z.string().min(1, 'JWT secret is required').default('your_jwt_secret'),
   },
   client: {
     NEXT_PUBLIC_APP_DOMAIN: z.string().default('hirelytics.app'),
@@ -51,5 +52,6 @@ export const env = createEnv({
     OTP_ISSUER: process.env.OTP_ISSUER,
     OTP_ACCOUNT_NAME: process.env.OTP_ACCOUNT_NAME,
     AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+    JWT_SECRET: process.env.JWT_SECRET,
   },
 });
