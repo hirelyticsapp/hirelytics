@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { createUser, updateUser } from '@/actions/candidate';
@@ -26,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
 import { IUser } from '@/db';
 import { useTableParams } from '@/hooks/use-table-params';
@@ -40,9 +42,9 @@ export const addUpdateCandidateFormSchema = z.object({
   emailVerified: z.boolean(),
 });
 
-export type AddUpdateCandidateFormData = z.infer<typeof addUpdateCandidateFormSchema>;
+export type CandidateCreateUpdateFormData = z.infer<typeof addUpdateCandidateFormSchema>;
 
-export default function AddCandidateForm({
+export default function CandidateCreateUpdateForm({
   candidate,
   open,
   setOpen,
@@ -56,7 +58,7 @@ export default function AddCandidateForm({
 
   const isEditing = Boolean(candidate?.id);
 
-  const form = useForm<AddUpdateCandidateFormData>({
+  const form = useForm<CandidateCreateUpdateFormData>({
     resolver: zodResolver(addUpdateCandidateFormSchema),
     defaultValues: {
       name: candidate?.name || '',
@@ -76,7 +78,7 @@ export default function AddCandidateForm({
   }, [candidate, form]);
 
   const createCandidateMutation = useMutation({
-    mutationFn: async (data: AddUpdateCandidateFormData) => {
+    mutationFn: async (data: CandidateCreateUpdateFormData) => {
       // Here you would typically send the data to your API
       if (isEditing && candidate) {
         return await updateUser(candidate.id, data);
@@ -84,15 +86,16 @@ export default function AddCandidateForm({
       return await createUser(data);
     },
     onSuccess: (data) => {
-      console.log('Candidate created successfully:', data);
+      toast.success(`Candidate ${data.name} ${isEditing ? 'updated' : 'created'} successfully.`);
       queryClient.invalidateQueries({ queryKey: ['users', pagination, filters, sorting] });
     },
     onError: (error) => {
       console.error('Error creating candidate:', error);
+      toast.error(`Failed to ${isEditing ? 'update' : 'create'} candidate: ${error.message}`);
     },
   });
 
-  const onSubmit = async (data: AddUpdateCandidateFormData) => {
+  const onSubmit = async (data: CandidateCreateUpdateFormData) => {
     try {
       await createCandidateMutation.mutateAsync(data);
       // Reset form and close dialog
@@ -105,7 +108,14 @@ export default function AddCandidateForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default">
+        <Button
+          variant="default"
+          onClick={() => {
+            console.log('Open dialog to add candidate');
+            console.log(candidate);
+            form.reset();
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Candidate
         </Button>
@@ -172,7 +182,9 @@ export default function AddCandidateForm({
               >
                 Cancel
               </Button>
-              <Button type="submit">{isEditing ? 'Update Candidate' : 'Add Candidate'}</Button>
+              <LoadingButton type="submit" loading={createCandidateMutation.isPending}>
+                {isEditing ? 'Update Candidate' : 'Add Candidate'}
+              </LoadingButton>
             </DialogFooter>
           </form>
         </Form>

@@ -51,7 +51,6 @@ export async function fetchRecruiters(
       ),
   ]);
 
-  console.log('Fetched users:', users, filter);
   return {
     data: users,
     totalCount,

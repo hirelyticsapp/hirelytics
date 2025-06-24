@@ -52,7 +52,6 @@ export async function fetchUsers(
       ),
   ]);
 
-  console.log('Fetched users:', users, filter);
   return {
     data: users,
     totalCount,
@@ -106,6 +105,4 @@ export async function deleteUser(id: string): Promise<void> {
   if (!result) {
     throw new Error('User not found');
   }
-
-  console.log(`User with id ${id} deleted successfully.`);
 }

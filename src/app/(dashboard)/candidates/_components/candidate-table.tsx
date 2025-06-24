@@ -19,10 +19,14 @@ import { IUser } from '@/db';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useTableParams } from '@/hooks/use-table-params';
 
-import AddUpdateCandidateFormData from './add-update-candidate-form';
+import CandidateCreateUpdateForm from './candidate-create-update-form';
+import { CandidateDetails } from './candidate-details';
+import CandidateRemoveConfirmation from './candidate-remove-confiirmation';
 
 export default function CandidateTable() {
   const [open, setOpen] = useState(false);
+  const [candidateDeleteOpen, setCandidateDeleteOpen] = useState(false);
+  const [candidateDetailsOpen, setCandidateDetailsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const { pagination, filters, sorting, setSearch, setRole, setStatus } = useTableParams();
   const { data, totalCount, pageCount, isLoading, error, refetch } = useDataTable({
@@ -116,7 +120,12 @@ export default function CandidateTable() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => {}}>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedUser(row.original);
+                setCandidateDetailsOpen(true);
+              }}
+            >
               <Eye className="mr-2 h-4 w-4" />
               View
             </DropdownMenuItem>
@@ -129,7 +138,14 @@ export default function CandidateTable() {
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {}} className="text-destructive" disabled={false}>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedUser(row.original);
+                setCandidateDeleteOpen(true);
+              }}
+              className="text-destructive"
+              disabled={false}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
@@ -146,7 +162,7 @@ export default function CandidateTable() {
           <h1 className="text-3xl font-bold tracking-tight">Users Management</h1>
           <p className="text-muted-foreground">Manage your users</p>
         </div>
-        <AddUpdateCandidateFormData
+        <CandidateCreateUpdateForm
           open={open}
           setOpen={setOpen}
           candidate={selectedUser as IUser}
@@ -187,6 +203,24 @@ export default function CandidateTable() {
           pageCount={pageCount}
           isLoading={isLoading}
         />
+        {selectedUser && (
+          <>
+            <CandidateRemoveConfirmation
+              open={candidateDeleteOpen}
+              setOpen={setCandidateDeleteOpen}
+              selectedUser={selectedUser}
+              onConfirm={() => {
+                // Handle delete confirmation
+                setCandidateDeleteOpen(false);
+              }}
+            />
+            <CandidateDetails
+              open={candidateDetailsOpen}
+              setOpen={setCandidateDetailsOpen}
+              selectedUser={selectedUser}
+            />
+          </>
+        )}
       </div>
     </div>
   );
