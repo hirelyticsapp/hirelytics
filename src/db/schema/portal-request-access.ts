@@ -17,6 +17,8 @@ export interface IPortalRequestAccess extends Document {
   status?: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   updatedAt: Date;
+  deleted: boolean;
+  deletedAt?: Date | null;
 }
 
 const PortalRequestAccessSchema = new Schema<IPortalRequestAccess>(
@@ -32,6 +34,8 @@ const PortalRequestAccessSchema = new Schema<IPortalRequestAccess>(
     hiring_challenge: { type: String, required: true },
     referral_source: { type: String, default: '' },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

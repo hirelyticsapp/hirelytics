@@ -26,6 +26,8 @@ export async function fetchPortalAccessRequest(
     filter['status'] = filters.status;
   }
 
+  filter['deleted'] = { $ne: true };
+
   console.log('Fetching Portal Access Requests with filters:', filter);
 
   await connectToDatabase();

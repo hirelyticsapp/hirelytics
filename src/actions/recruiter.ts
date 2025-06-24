@@ -25,6 +25,7 @@ export async function fetchRecruiters(
   }
 
   filter['role'] = 'recruiter';
+  filter['deleted'] = { $ne: true };
 
   if (filters.status) {
     filter['status'] = filters.status;
@@ -98,8 +99,9 @@ export async function updateRecruiter(id: string, data: Partial<IUser>): Promise
 export async function deleteRecruiter(id: string): Promise<void> {
   await connectToDatabase();
 
-  const result = await User.findByIdAndDelete(id, {
+  const result = await User.findByIdAndUpdate(id, {
     deletedAt: new Date(),
+    deleted: true,
   });
 
   if (!result) {
