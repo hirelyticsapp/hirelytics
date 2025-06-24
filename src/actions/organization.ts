@@ -1,9 +1,13 @@
 'use server';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { PaginationState } from '@tanstack/react-table';
+import { v4 as uuidv4 } from 'uuid';
 
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IOrganization } from '@/db';
 import Organization from '@/db/schema/organization';
+import { env } from '@/env';
+import { createS3Client } from '@/lib/s3-client';
 
 export async function fetchOrganizations(
   pagination: PaginationState,
@@ -59,6 +63,37 @@ export async function fetchOrganizations(
     totalCount,
     pageCount: Math.ceil(totalCount / limit),
   };
+}
+
+export async function OrganizationLogoUpload(file: File): Promise<{ key: string; url: string }> {
+  const s3Client = createS3Client();
+  const bucketName = env.AWS_S3_BUCKET_NAME;
+
+  // Generate a unique file name with proper extension
+  const fileExtension = file.name.split('.').pop() || 'jpg';
+  const fileName = `organizations/logo/${uuidv4()}.${fileExtension}`;
+
+  const uploadParams = {
+    Bucket: bucketName,
+    Key: fileName,
+    Body: new Uint8Array(await file.arrayBuffer()),
+    ContentType: file.type,
+  };
+
+  try {
+    await s3Client.send(new PutObjectCommand(uploadParams));
+
+    // Generate the public URL for the uploaded file
+    const publicUrl = `${env.AWS_ENDPOINT_URL_S3}/${bucketName}/${fileName}`;
+
+    return {
+      key: fileName,
+      url: publicUrl,
+    };
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw new Error('Failed to upload file');
+  }
 }
 
 export async function createOrganization(

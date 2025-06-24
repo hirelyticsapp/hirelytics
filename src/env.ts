@@ -25,6 +25,13 @@ export const env = createEnv({
     OTP_ISSUER: z.string().default('Hirelytics'),
     OTP_ACCOUNT_NAME: z.string().default('admin@hirelytics.app'),
     JWT_SECRET: z.string().min(1, 'JWT secret is required').default('your_jwt_secret'),
+
+    AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS Access Key ID is required'),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS Secret Access Key is required'),
+    AWS_ENDPOINT_URL_S3: z.string().url(),
+    AWS_S3_BUCKET_NAME: z.string().min(1, 'AWS S3 Bucket Name is required'),
+    AWS_BUCKET_NAME: z.string().min(1, 'AWS Bucket Name is required'),
+    AWS_REGION: z.string().default('us-east-1'),
   },
   client: {
     NEXT_PUBLIC_APP_DOMAIN: z.string().default('hirelytics.app'),
@@ -53,5 +60,11 @@ export const env = createEnv({
     OTP_ACCOUNT_NAME: process.env.OTP_ACCOUNT_NAME,
     AUTH_DOMAIN: process.env.AUTH_DOMAIN,
     JWT_SECRET: process.env.JWT_SECRET,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3,
+    AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
+    AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
+    AWS_REGION: process.env.AWS_REGION,
   },
 });

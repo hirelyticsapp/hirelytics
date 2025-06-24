@@ -7,7 +7,7 @@ export interface IOrganization extends Document {
   name: string;
   slug: string;
   description?: string;
-  logo: string;
+  logo?: string;
   deletedAt?: Date;
   deleted: boolean;
   createdAt: Date;
@@ -19,7 +19,7 @@ const OrganizationSchema = new Schema<IOrganization>(
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
     description: { type: String },
-    logo: { type: String, required: true },
+    logo: { type: String },
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
@@ -27,7 +27,7 @@ const OrganizationSchema = new Schema<IOrganization>(
     timestamps: true,
     collection: 'organization',
     toJSON: {
-      transform: function (doc, ret) {
+      transform: function (_doc, ret) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
@@ -35,7 +35,7 @@ const OrganizationSchema = new Schema<IOrganization>(
       },
     },
     toObject: {
-      transform: function (doc, ret) {
+      transform: function (_doc, ret) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;

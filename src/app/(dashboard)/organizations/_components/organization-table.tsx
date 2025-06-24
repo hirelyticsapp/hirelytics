@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { fetchOrganizations } from '@/actions/organization';
 import { DataTable } from '@/components/data-table/data-table';
+import S3SignedImage from '@/components/s3-signed-image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,9 +67,18 @@ export default function OrganizationTable() {
       header: 'Logo',
       cell: ({ row }) => {
         const logoUrl = row.getValue('logo') as string;
+
+        console.log('Logo URL:', logoUrl);
         return logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={`${row.getValue('name')} logo`} className="h-8 w-8 rounded" />
+          <>
+            <S3SignedImage
+              src={logoUrl}
+              alt={`${row.getValue('name')} logo`}
+              className="h-8 w-8 rounded"
+              width={32}
+              height={32}
+            />
+          </>
         ) : (
           <Badge variant="secondary">No Logo</Badge>
         );

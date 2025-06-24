@@ -1,12 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { createOrganization, updateOrganization } from '@/actions/organization';
+import {
+  createOrganization,
+  OrganizationLogoUpload,
+  updateOrganization,
+} from '@/actions/organization';
+import { FileDropzone } from '@/components/file-dropzone';
+import S3SignedImage from '@/components/s3-signed-image';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,7 +33,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { Textarea } from '@/components/ui/textarea';
 import { IOrganization } from '@/db';
 import { useTableParams } from '@/hooks/use-table-params';
 import { getQueryClient } from '@/lib/query-client';
@@ -42,7 +50,7 @@ export const addUpdateOrganizationFormSchema = z.object({
     .min(2, 'Slug must be at least 2 characters')
     .max(100, 'Slug must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  logo: z.string().url('Logo must be a valid URL').optional(),
+  logo: z.string().optional(),
 });
 
 export type OrganizationCreateUpdateFormData = z.infer<typeof addUpdateOrganizationFormSchema>;
@@ -58,6 +66,7 @@ export default function OrganizationCreateUpdateForm({
 }) {
   const { pagination, filters, sorting } = useTableParams();
   const queryClient = getQueryClient();
+  const fileDropzoneRef = useRef<{ clearFiles: () => void }>(null);
 
   const isEditing = Boolean(organization?.id);
 
@@ -114,6 +123,12 @@ export default function OrganizationCreateUpdateForm({
 
   const onSubmit = async (data: OrganizationCreateUpdateFormData) => {
     try {
+      // Validate that logo is provided for new organizations
+      if (!isEditing && !data.logo) {
+        toast.error('Please upload a logo for the organization.');
+        return;
+      }
+
       await createOrganizationMutation.mutateAsync(data);
       // Reset form to default values and close dialog
       form.reset({
@@ -125,8 +140,40 @@ export default function OrganizationCreateUpdateForm({
       setOpen(false);
     } catch (error) {
       console.error('Error submitting form:', error);
+      // Error is already handled by the mutation's onError callback
     }
   };
+
+  const organizationLogoUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!file) {
+        throw new Error('No file selected for upload');
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please select a valid image file');
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size must be less than 5MB');
+      }
+
+      return await OrganizationLogoUpload(file);
+    },
+    onSuccess: (data) => {
+      form.setValue('logo', data.key);
+      toast.success('Logo uploaded successfully.');
+      // Clear the file dropzone after successful upload
+      fileDropzoneRef.current?.clearFiles();
+    },
+    onError: (error) => {
+      console.error('Error uploading logo:', error);
+      toast.error(`Failed to upload logo: ${error.message}`);
+    },
+  });
+
   return (
     <Dialog
       open={open}
@@ -195,20 +242,52 @@ export default function OrganizationCreateUpdateForm({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="logo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/logo.png" {...field} />
-                  </FormControl>
-                  <FormDescription>The organization&apos;s logo URL</FormDescription>
-                  <FormMessage />
-                </FormItem>
+            <div>
+              <Label className="mb-2">Logo</Label>
+              {form.watch('logo') && (
+                <div className="mb-2 p-2 border rounded-md">
+                  <div className="flex items-center gap-2">
+                    <S3SignedImage
+                      src={form.watch('logo') as string}
+                      alt="Current logo"
+                      className="w-12 h-12 object-cover rounded"
+                      width={48}
+                      height={48}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Current Logo</p>
+                      <p className="text-xs text-muted-foreground">
+                        Click below to upload a new logo
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => form.setValue('logo', '')}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
               )}
-            />
+              <FileDropzone
+                ref={fileDropzoneRef}
+                onFilesChange={(files) => {
+                  if (files[0]) {
+                    organizationLogoUploadMutation.mutate(files[0]);
+                  }
+                }}
+                maxFiles={1}
+                maxSize={5 * 1024 * 1024} // 5MB
+                acceptedFileTypes={['image/*']}
+                disabled={organizationLogoUploadMutation.isPending}
+              />
+              {organizationLogoUploadMutation.isPending && (
+                <div className="mt-2 text-sm text-muted-foreground">Uploading logo...</div>
+              )}
+            </div>
             <FormField
               control={form.control}
               name="description"
@@ -216,7 +295,12 @@ export default function OrganizationCreateUpdateForm({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="A brief description of the organization" {...field} />
+                    <Textarea
+                      placeholder="A brief description of the organization"
+                      {...field}
+                      className="resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      rows={5}
+                    />
                   </FormControl>
                   <FormDescription>A brief description of the organization</FormDescription>
                   <FormMessage />
@@ -241,8 +325,22 @@ export default function OrganizationCreateUpdateForm({
               >
                 Cancel
               </Button>
-              <LoadingButton type="submit" loading={createOrganizationMutation.isPending}>
-                {isEditing ? 'Update Organization' : 'Add Organization'}
+              <LoadingButton
+                type="submit"
+                loading={
+                  createOrganizationMutation.isPending || organizationLogoUploadMutation.isPending
+                }
+                disabled={organizationLogoUploadMutation.isPending}
+              >
+                {organizationLogoUploadMutation.isPending
+                  ? 'Uploading Logo...'
+                  : createOrganizationMutation.isPending
+                    ? isEditing
+                      ? 'Updating...'
+                      : 'Creating...'
+                    : isEditing
+                      ? 'Update Organization'
+                      : 'Add Organization'}
               </LoadingButton>
             </DialogFooter>
           </form>
