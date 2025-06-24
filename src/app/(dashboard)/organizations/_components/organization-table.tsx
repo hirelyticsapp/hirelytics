@@ -160,8 +160,8 @@ export default function OrganizationTable() {
     <div className="container mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Recruiter Management</h1>
-          <p className="text-muted-foreground">Manage your recruiters</p>
+          <h1 className="text-3xl font-bold tracking-tight">Organizations Management</h1>
+          <p className="text-muted-foreground">Manage your organizations</p>
         </div>
         <OrganizationCreateUpdateForm
           open={open}
@@ -177,7 +177,7 @@ export default function OrganizationTable() {
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
         <div className="flex-1">
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Search by organization name..."
             value={filters.search || ''}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"
