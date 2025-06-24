@@ -164,7 +164,12 @@ export default function CandidateTable() {
         </div>
         <CandidateCreateUpdateForm
           open={open}
-          setOpen={setOpen}
+          setOpen={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+              setSelectedUser(null);
+            }
+          }}
           candidate={selectedUser as IUser}
         />
       </div>

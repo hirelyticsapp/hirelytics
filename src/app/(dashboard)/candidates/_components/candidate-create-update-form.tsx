@@ -61,21 +61,31 @@ export default function CandidateCreateUpdateForm({
   const form = useForm<CandidateCreateUpdateFormData>({
     resolver: zodResolver(addUpdateCandidateFormSchema),
     defaultValues: {
-      name: candidate?.name || '',
-      email: candidate?.email || '',
-      emailVerified: candidate?.emailVerified || false,
+      name: '',
+      email: '',
+      emailVerified: false,
     },
   });
 
   useEffect(() => {
-    if (candidate) {
-      form.reset({
-        name: candidate.name,
-        email: candidate.email,
-        emailVerified: candidate.emailVerified,
-      });
+    if (open) {
+      if (candidate) {
+        // Editing mode - populate form with candidate data
+        form.reset({
+          name: candidate.name,
+          email: candidate.email,
+          emailVerified: candidate.emailVerified,
+        });
+      } else {
+        // Create mode - reset form to default values
+        form.reset({
+          name: '',
+          email: '',
+          emailVerified: false,
+        });
+      }
     }
-  }, [candidate, form]);
+  }, [candidate, form, open]);
 
   const createCandidateMutation = useMutation({
     mutationFn: async (data: CandidateCreateUpdateFormData) => {
@@ -98,22 +108,42 @@ export default function CandidateCreateUpdateForm({
   const onSubmit = async (data: CandidateCreateUpdateFormData) => {
     try {
       await createCandidateMutation.mutateAsync(data);
-      // Reset form and close dialog
-      form.reset();
+      // Reset form to default values and close dialog
+      form.reset({
+        name: '',
+        email: '',
+        emailVerified: false,
+      });
       setOpen(false);
     } catch (error) {
       console.error('Error submitting form:', error);
     }
   };
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          // Reset form when dialog closes
+          form.reset({
+            name: '',
+            email: '',
+            emailVerified: false,
+          });
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           variant="default"
           onClick={() => {
-            console.log('Open dialog to add candidate');
-            console.log(candidate);
-            form.reset();
+            // Reset form for new candidate creation
+            form.reset({
+              name: '',
+              email: '',
+              emailVerified: false,
+            });
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -177,7 +207,14 @@ export default function CandidateCreateUpdateForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  form.reset({
+                    name: '',
+                    email: '',
+                    emailVerified: false,
+                  });
+                }}
                 disabled={false}
               >
                 Cancel
