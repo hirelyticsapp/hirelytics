@@ -185,8 +185,8 @@ export default function JobTable() {
     <div className="container mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users Management</h1>
-          <p className="text-muted-foreground">Manage your users</p>
+          <h1 className="text-3xl font-bold tracking-tight">Jobs Management</h1>
+          <p className="text-muted-foreground">Manage your jobs</p>
         </div>
         {/* <CandidateCreateUpdateForm
           open={open}
