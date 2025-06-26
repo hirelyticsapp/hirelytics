@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { getJobById } from '@/actions/job';
-import { JobDetailsPage } from '@/app/(dashboard)/jobs/_components/job-form/job-details-page';
+import { JobDetailsPage } from '@/app/(dashboard)/(admin)/jobs/_components/job-form/job-details-page';
 
 interface JobSetupPageProps {
   params: Promise<{
