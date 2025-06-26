@@ -4,7 +4,6 @@ import { ArrowUpDown, MoreHorizontal, RefreshCw, SettingsIcon } from 'lucide-rea
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { fetchJobs } from '@/actions/job';
 import { DataTable } from '@/components/data-table/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,21 +15,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { IJob } from '@/db';
-import { useDataTable } from '@/hooks/use-data-table';
+import { useJobsQuery } from '@/hooks/use-job-queries';
 import { useTableParams } from '@/hooks/use-table-params';
 
 import { CreateJobPopup } from './job-form/create-job-popup';
 
 export default function JobTable() {
-  // const [open, setOpen] = useState(false);
-  // const [jobDeleteOpen, setJobDeleteOpen] = useState(false);
-  // const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
-  // const [selectedJob, setSelectedJob] = useState<IJob | null>(null);
   const { pagination, filters, sorting, setSearch, setRole, setStatus } = useTableParams();
-  const { data, totalCount, pageCount, isLoading, error, refetch } = useDataTable({
-    queryKey: ['jobs', pagination, filters, sorting],
-    queryFn: () => fetchJobs(pagination, filters, sorting),
-  });
+  const { data: jobsData, isLoading, error, refetch } = useJobsQuery(pagination, filters, sorting);
+
+  const data = jobsData?.data || [];
+  const totalCount = jobsData?.totalCount || 0;
+  const pageCount = jobsData?.pageCount || 0;
 
   const clearFilters = () => {
     setSearch('');
@@ -40,7 +36,7 @@ export default function JobTable() {
 
   const hasActiveFilters = filters.search || filters.role || filters.status;
 
-  const columns: ColumnDef<IJob>[] = [
+  const columns: ColumnDef<Partial<IJob>>[] = [
     {
       accessorKey: 'title',
       header: ({ column }) => (

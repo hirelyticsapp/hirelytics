@@ -7,7 +7,6 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Resolver, useForm } from 'react-hook-form';
 
-import { createJobFromBasicDetails } from '@/actions/job';
 import { getIndustrySkills, getOrganizations } from '@/actions/organization';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
+import { useCreateJobMutation } from '@/hooks/use-job-queries';
 import { industriesData } from '@/lib/constants/industry-data';
 import { currencies } from '@/lib/constants/job-constants';
 import { type BasicJobDetails, basicJobDetailsSchema } from '@/lib/schemas/job-schemas';
@@ -56,10 +56,12 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [skillInput, setSkillInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
+
+  // Initialize the create job mutation
+  const createJobMutation = useCreateJobMutation();
 
   const form = useForm<BasicJobDetails>({
     resolver: zodResolver(basicJobDetailsSchema) as Resolver<BasicJobDetails>,
@@ -148,12 +150,14 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
   };
 
   const onSubmit = async (data: BasicJobDetails) => {
-    setIsSubmitting(true);
     try {
       console.log('Creating job with basic details:', data);
 
       // Pass the current user's ID as the recruiter
-      const result = await createJobFromBasicDetails(data, user?.id);
+      const result = await createJobMutation.mutateAsync({
+        jobData: data,
+        recruiterId: user?.id,
+      });
 
       if (result.success && result.data) {
         setOpen(false);
@@ -165,8 +169,6 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
       }
     } catch (error) {
       console.error('Error creating job:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -418,12 +420,12 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={isSubmitting}
+                disabled={createJobMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={createJobMutation.isPending}>
+                {createJobMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating...

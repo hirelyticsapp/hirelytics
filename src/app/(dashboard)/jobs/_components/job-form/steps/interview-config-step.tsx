@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, ChevronLeft, ChevronRight, Monitor, Save } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Loader2, Monitor, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -33,43 +30,98 @@ import { getDifficultyLevelInfo } from '@/lib/utils/job-utils';
 
 interface InterviewConfigStepProps {
   initialData?: Partial<InterviewConfig>;
-  onComplete: (data: InterviewConfig) => void;
-  onNext: () => void;
+  onComplete: (data: InterviewConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
+  isSaving?: boolean;
 }
 
 export function InterviewConfigStep({
   initialData,
   onComplete,
-  onNext,
   onPrevious,
+  isSaving = false,
 }: InterviewConfigStepProps) {
   const form = useForm<InterviewConfig>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(interviewConfigSchema) as any,
+    resolver: zodResolver(interviewConfigSchema),
     defaultValues: {
-      duration: initialData?.duration || 60,
-      instructions: initialData?.instructions || '',
-      difficultyLevel: initialData?.difficultyLevel || 'normal',
-      screenMonitoring: initialData?.screenMonitoring || false,
-      screenMonitoringMode: initialData?.screenMonitoringMode || 'photo',
-      screenMonitoringInterval: initialData?.screenMonitoringInterval || 30,
-      cameraMonitoring: initialData?.cameraMonitoring || false,
-      cameraMonitoringMode: initialData?.cameraMonitoringMode || 'photo',
-      cameraMonitoringInterval: initialData?.cameraMonitoringInterval || 30,
+      duration: initialData?.duration ?? 60,
+      instructions: initialData?.instructions ?? '',
+      difficultyLevel: initialData?.difficultyLevel ?? 'normal',
+      screenMonitoring: initialData?.screenMonitoring ?? false,
+      screenMonitoringMode: initialData?.screenMonitoringMode ?? 'photo',
+      screenMonitoringInterval: initialData?.screenMonitoringInterval ?? 30,
+      cameraMonitoring: initialData?.cameraMonitoring ?? false,
+      cameraMonitoringMode: initialData?.cameraMonitoringMode ?? 'photo',
+      cameraMonitoringInterval: initialData?.cameraMonitoringInterval ?? 30,
     },
   });
 
   const watchScreenMonitoring = form.watch('screenMonitoring');
   const watchCameraMonitoring = form.watch('cameraMonitoring');
 
-  const onSubmit = (data: InterviewConfig) => {
-    onComplete(data);
-    onNext();
+  // Helper function to create clean, serializable data
+  const createCleanData = (data: Partial<InterviewConfig>): InterviewConfig => {
+    // Ensure all values are properly typed and validated
+    const cleanObject = {
+      duration: Number(data.duration) || 60,
+      instructions: String(data.instructions || ''),
+      difficultyLevel: data.difficultyLevel || 'normal',
+      screenMonitoring: Boolean(data.screenMonitoring),
+      screenMonitoringMode: data.screenMonitoringMode || 'photo',
+      screenMonitoringInterval: Number(data.screenMonitoringInterval) || 30,
+      cameraMonitoring: Boolean(data.cameraMonitoring),
+      cameraMonitoringMode: data.cameraMonitoringMode || 'photo',
+      cameraMonitoringInterval: Number(data.cameraMonitoringInterval) || 30,
+    };
+
+    // Validate with zod schema to ensure type safety
+    return interviewConfigSchema.parse(cleanObject);
   };
 
-  const handleSaveAndContinue = () => {
-    form.handleSubmit(onSubmit)();
+  const onSubmit = async (data: InterviewConfig) => {
+    try {
+      const cleanData = createCleanData(data);
+      await onComplete(cleanData, true);
+    } catch (error) {
+      console.error('Error submitting interview config:', error);
+      // Handle error appropriately
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const isValid = await form.trigger();
+      if (!isValid) {
+        console.warn('Form validation failed');
+        return;
+      }
+
+      const formData = form.getValues();
+      const cleanData = createCleanData(formData);
+      await onComplete(cleanData, false);
+    } catch (error) {
+      console.error('Error saving interview config:', error);
+      // You might want to show a toast notification here
+      throw error; // Re-throw to let parent handle it if needed
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    try {
+      const isValid = await form.trigger();
+      if (!isValid) {
+        console.warn('Form validation failed');
+        return;
+      }
+
+      const formData = form.getValues();
+      const cleanData = createCleanData(formData);
+      await onComplete(cleanData, true);
+    } catch (error) {
+      console.error('Error saving interview config:', error);
+      // You might want to show a toast notification here
+      throw error; // Re-throw to let parent handle it if needed
+    }
   };
 
   return (
@@ -83,79 +135,82 @@ export function InterviewConfigStep({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interview Duration (minutes) *</FormLabel>
+            {/* Interview Duration */}
+            <FormField
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interview Duration *</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                    value={field.value?.toString() || '60'}
+                  >
                     <FormControl>
-                      <Input
-                        type="number"
-                        min="5"
-                        max="120"
-                        {...field}
-                        onChange={(e) => field.onChange(Number.parseInt(e.target.value))}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormDescription>Duration between 5-120 minutes</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="45">45 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="90">1.5 hours</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="difficultyLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Difficulty Level *</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="space-y-3"
-                      >
-                        {difficultyLevels.map((level) => {
-                          const levelInfo = getDifficultyLevelInfo(level.value);
-                          const IconComponent = levelInfo.icon;
+            {/* Difficulty Level */}
+            <FormField
+              control={form.control}
+              name="difficultyLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Difficulty Level *</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {difficultyLevels.map((level) => {
+                        const levelInfo = getDifficultyLevelInfo(level.value);
+                        const IconComponent = levelInfo.icon;
+                        const isSelected = field.value === level.value;
 
-                          return (
-                            <div key={level.value} className="flex items-center space-x-2">
-                              <RadioGroupItem value={level.value} id={level.value} />
-                              <Label htmlFor={level.value} className="flex-1 cursor-pointer">
-                                <Card
-                                  className={`p-4 transition-all hover:shadow-md ${
-                                    field.value === level.value
-                                      ? `bg-gradient-to-r ${levelInfo.bgGradient} border-2 ${levelInfo.colorClass.split(' ')[2]}`
-                                      : 'hover:bg-muted/50'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-full ${levelInfo.colorClass}`}>
-                                      <IconComponent className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <h4 className="font-medium">{level.label}</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {level.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </Card>
-                              </Label>
-                            </div>
-                          );
-                        })}
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                        return (
+                          <Card
+                            key={level.value}
+                            className={`cursor-pointer transition-all hover:shadow-md ${
+                              isSelected
+                                ? `bg-gradient-to-r ${levelInfo.bgGradient} border-2 border-current`
+                                : 'hover:bg-muted/50 border border-border'
+                            }`}
+                            onClick={() => field.onChange(level.value)}
+                          >
+                            <CardContent className="p-3 text-center">
+                              <div
+                                className={`mx-auto p-2 rounded-full ${levelInfo.colorClass} w-fit mb-2`}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                              </div>
+                              <h4 className="font-medium text-sm leading-tight">{level.label}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 leading-tight">
+                                {level.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            {/* Interview Instructions */}
             <FormField
               control={form.control}
               name="instructions"
@@ -178,19 +233,26 @@ export function InterviewConfigStep({
               )}
             />
 
-            {/* Monitoring Settings */}
-            <div className="space-y-6">
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium mb-4">Monitoring Settings</h3>
+            {/* Monitoring System */}
+            <div className="space-y-6 pt-4 border-t border-border">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Monitoring System</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure how candidates will be monitored during the interview
+                </p>
+              </div>
 
+              <div className="grid gap-4">
                 {/* Screen Monitoring */}
-                <Card className="mb-4">
+                <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <Monitor className="h-5 w-5 text-muted-foreground" />
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                          <Monitor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
                         <div>
-                          <FormLabel>Screen Monitoring</FormLabel>
+                          <FormLabel className="text-base font-medium">Screen Monitoring</FormLabel>
                           <p className="text-sm text-muted-foreground">
                             Monitor candidate&apos;s screen during the interview
                           </p>
@@ -210,14 +272,14 @@ export function InterviewConfigStep({
                     </div>
 
                     {watchScreenMonitoring && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
                         <FormField
                           control={form.control}
                           name="screenMonitoringMode"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Mode</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || 'photo'}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue />
@@ -239,8 +301,10 @@ export function InterviewConfigStep({
                             <FormItem>
                               <FormLabel>Interval</FormLabel>
                               <Select
-                                onValueChange={(value) => field.onChange(Number.parseInt(value))}
-                                defaultValue={field.value?.toString()}
+                                onValueChange={(value) =>
+                                  field.onChange(Number.parseInt(value, 10))
+                                }
+                                value={field.value?.toString() || '30'}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -265,9 +329,11 @@ export function InterviewConfigStep({
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <Camera className="h-5 w-5 text-muted-foreground" />
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                          <Camera className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
                         <div>
-                          <FormLabel>Camera Monitoring</FormLabel>
+                          <FormLabel className="text-base font-medium">Camera Monitoring</FormLabel>
                           <p className="text-sm text-muted-foreground">
                             Monitor candidate through their camera
                           </p>
@@ -287,14 +353,14 @@ export function InterviewConfigStep({
                     </div>
 
                     {watchCameraMonitoring && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
                         <FormField
                           control={form.control}
                           name="cameraMonitoringMode"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Mode</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || 'photo'}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue />
@@ -316,8 +382,10 @@ export function InterviewConfigStep({
                             <FormItem>
                               <FormLabel>Interval</FormLabel>
                               <Select
-                                onValueChange={(value) => field.onChange(Number.parseInt(value))}
-                                defaultValue={field.value?.toString()}
+                                onValueChange={(value) =>
+                                  field.onChange(Number.parseInt(value, 10))
+                                }
+                                value={field.value?.toString() || '30'}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -345,13 +413,23 @@ export function InterviewConfigStep({
                 Previous
               </Button>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={handleSaveAndContinue}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save & Continue
+                <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save
                 </Button>
-                <Button type="submit">
-                  Next Step
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                <Button type="button" onClick={handleSaveAndContinue} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <>
+                      Save & Continue
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

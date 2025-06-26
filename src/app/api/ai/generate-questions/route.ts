@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: questions,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: 'Failed to generate questions' },
       { status: 500 }

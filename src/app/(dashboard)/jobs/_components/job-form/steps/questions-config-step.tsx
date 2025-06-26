@@ -44,9 +44,9 @@ interface QuestionsConfigStepProps {
   industry: string;
   jobTitle?: string;
   difficultyLevel?: string;
-  onComplete: (data: QuestionsConfig) => void;
-  onNext: () => void;
+  onComplete: (data: QuestionsConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
+  isSaving?: boolean;
 }
 
 export function QuestionsConfigStep({
@@ -55,8 +55,8 @@ export function QuestionsConfigStep({
   jobTitle,
   difficultyLevel,
   onComplete,
-  onNext,
   onPrevious,
+  isSaving = false,
 }: QuestionsConfigStepProps) {
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(
     initialData?.questionTypes || []
@@ -171,19 +171,42 @@ export function QuestionsConfigStep({
     }));
   };
 
-  const onSubmit = (data: QuestionsConfig) => {
+  const onSubmit = async (data: QuestionsConfig) => {
     // Compile all manual questions if in manual mode
     if (watchMode === 'manual') {
       const allQuestions = Object.values(manualQuestions).flat();
       data.questions = allQuestions;
     }
 
-    onComplete(data);
-    onNext();
+    await onComplete(data, true); // Save and move to next step
   };
 
-  const handleSaveAndContinue = () => {
-    form.handleSubmit(onSubmit)();
+  const handleSave = async () => {
+    const formData = form.getValues();
+    // Compile all manual questions if in manual mode
+    if (watchMode === 'manual') {
+      const allQuestions = Object.values(manualQuestions).flat();
+      formData.questions = allQuestions;
+    }
+
+    const isValid = await form.trigger();
+    if (isValid) {
+      await onComplete(formData, false); // Save without moving to next step
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    const formData = form.getValues();
+    // Compile all manual questions if in manual mode
+    if (watchMode === 'manual') {
+      const allQuestions = Object.values(manualQuestions).flat();
+      formData.questions = allQuestions;
+    }
+
+    const isValid = await form.trigger();
+    if (isValid) {
+      await onComplete(formData, true); // Save and move to next step
+    }
   };
 
   const categoryConfigs = form.watch('categoryConfigs');
@@ -432,13 +455,27 @@ export function QuestionsConfigStep({
                 Previous
               </Button>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={handleSaveAndContinue}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save & Continue
+                <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save
                 </Button>
-                <Button type="submit" disabled={selectedQuestionTypes.length === 0}>
-                  Next Step
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                <Button
+                  type="button"
+                  onClick={handleSaveAndContinue}
+                  disabled={selectedQuestionTypes.length === 0 || isSaving}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <>
+                      Save & Continue
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

@@ -7,6 +7,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { getIndustrySkills, getOrganizations } from '@/actions/organization';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,17 +37,20 @@ import { cn } from '@/lib/utils';
 
 interface BasicDetailsStepProps {
   initialData?: Partial<BasicJobDetails>;
-  onComplete: (data: BasicJobDetails) => void;
-  onNext: () => void;
+  onComplete: (data: BasicJobDetails, shouldMoveNext?: boolean) => Promise<void>;
+  isSaving?: boolean;
 }
 
 interface Organization {
   id: string;
   name: string;
-  industry: string;
 }
 
-export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetailsStepProps) {
+export function BasicDetailsStep({
+  initialData,
+  onComplete,
+  isSaving = false,
+}: BasicDetailsStepProps) {
   const [skillInput, setSkillInput] = useState('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
@@ -71,14 +75,17 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
   const skills = form.watch('skills');
   const selectedIndustry = form.watch('industry');
 
-  // Fetch organizations on component mount
+  // Fetch organizations on component mount and set default if only one exists
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await fetch('/api/organizations');
-        const result = await response.json();
+        const result = await getOrganizations();
         if (result.success) {
           setOrganizations(result.data);
+          // If only one organization exists and no organizationId is set, set it as default
+          if (result.data.length === 1 && !form.getValues('organizationId')) {
+            form.setValue('organizationId', result.data[0].id);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch organizations:', error);
@@ -86,7 +93,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
     };
 
     fetchOrganizations();
-  }, []);
+  }, [form]);
 
   // Fetch skills when industry changes
   useEffect(() => {
@@ -94,8 +101,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
       const fetchSkills = async () => {
         setLoadingSkills(true);
         try {
-          const response = await fetch(`/api/industries/${selectedIndustry}/skills`);
-          const result = await response.json();
+          const result = await getIndustrySkills(selectedIndustry);
           if (result.success) {
             setAvailableSkills(result.data);
           }
@@ -142,13 +148,24 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
     }
   };
 
-  const onSubmit = (data: BasicJobDetails) => {
-    onComplete(data);
-    onNext();
+  const onSubmit = async (data: BasicJobDetails) => {
+    await onComplete(data, true); // Save and move to next step
   };
 
-  const handleSaveAndContinue = () => {
-    form.handleSubmit(onSubmit)();
+  const handleSave = async () => {
+    const formData = form.getValues();
+    const isValid = await form.trigger(); // Validate the form
+    if (isValid) {
+      await onComplete(formData, false); // Save without moving to next step
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    const formData = form.getValues();
+    const isValid = await form.trigger(); // Validate the form
+    if (isValid) {
+      await onComplete(formData, true); // Save and move to next step
+    }
   };
 
   return (
@@ -181,7 +198,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Organization *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select organization" />
@@ -206,7 +223,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Industry *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select industry" />
@@ -262,7 +279,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || 'USD'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -317,7 +334,6 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
                 )}
               />
             </div>
-
             {/* Skills Section */}
             <div className="space-y-3">
               <FormLabel>Skills *</FormLabel>
@@ -389,13 +405,23 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={handleSaveAndContinue}>
-                <Save className="h-4 w-4 mr-2" />
-                Save & Continue
+              <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save
               </Button>
-              <Button type="submit">
-                Next Step
-                <ChevronRight className="h-4 w-4 ml-2" />
+              <Button type="button" onClick={handleSaveAndContinue} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <>
+                    Save & Continue
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           </form>

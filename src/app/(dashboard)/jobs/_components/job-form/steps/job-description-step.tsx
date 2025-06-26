@@ -2,10 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronLeft, ChevronRight, Loader2, Save, Sparkles } from 'lucide-react';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { generateJobDescription } from '@/actions/job';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { useGenerateJobDescriptionMutation } from '@/hooks/use-job-queries';
 import { type JobDescription, jobDescriptionSchema } from '@/lib/schemas/job-schemas';
 
 interface JobDescriptionStepProps {
@@ -26,9 +25,9 @@ interface JobDescriptionStepProps {
   industry?: string;
   skills?: string[];
   location?: string;
-  onComplete: (data: JobDescription) => void;
-  onNext: () => void;
+  onComplete: (data: JobDescription, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
+  isSaving?: boolean;
 }
 
 export function JobDescriptionStep({
@@ -38,10 +37,10 @@ export function JobDescriptionStep({
   skills,
   location,
   onComplete,
-  onNext,
   onPrevious,
+  isSaving = false,
 }: JobDescriptionStepProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const generateJobDescriptionMutation = useGenerateJobDescriptionMutation();
 
   const form = useForm<JobDescription>({
     resolver: zodResolver(jobDescriptionSchema),
@@ -57,9 +56,13 @@ export function JobDescriptionStep({
       return;
     }
 
-    setIsGenerating(true);
     try {
-      const result = await generateJobDescription(jobTitle, industry, skills, location);
+      const result = await generateJobDescriptionMutation.mutateAsync({
+        jobTitle,
+        industry,
+        skills,
+        location,
+      });
 
       if (result.success) {
         form.setValue('description', result.data.description);
@@ -68,18 +71,27 @@ export function JobDescriptionStep({
       }
     } catch (error) {
       console.error('Failed to generate description:', error);
-    } finally {
-      setIsGenerating(false);
     }
   };
 
-  const onSubmit = (data: JobDescription) => {
-    onComplete(data);
-    onNext();
+  const onSubmit = async (data: JobDescription) => {
+    await onComplete(data, true); // Save and move to next step
   };
 
-  const handleSaveAndContinue = () => {
-    form.handleSubmit(onSubmit)();
+  const handleSave = async () => {
+    const formData = form.getValues();
+    const isValid = await form.trigger();
+    if (isValid) {
+      await onComplete(formData, false); // Save without moving to next step
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    const formData = form.getValues();
+    const isValid = await form.trigger();
+    if (isValid) {
+      await onComplete(formData, true); // Save and move to next step
+    }
   };
 
   return (
@@ -96,10 +108,10 @@ export function JobDescriptionStep({
             type="button"
             variant="outline"
             onClick={generateDescription}
-            disabled={isGenerating || !jobTitle || !industry}
+            disabled={generateJobDescriptionMutation.isPending || !jobTitle || !industry}
             className="gap-2"
           >
-            {isGenerating ? (
+            {generateJobDescriptionMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Generating...
@@ -183,13 +195,23 @@ export function JobDescriptionStep({
                 Previous
               </Button>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={handleSaveAndContinue}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save & Continue
+                <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save
                 </Button>
-                <Button type="submit">
-                  Next Step
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                <Button type="button" onClick={handleSaveAndContinue} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <>
+                      Save & Continue
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

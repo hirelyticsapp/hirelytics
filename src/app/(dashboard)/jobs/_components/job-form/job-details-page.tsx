@@ -2,18 +2,19 @@
 
 import { Check, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 import { useState } from 'react';
 
-import {
-  publishJob,
-  updateJobBasicDetails,
-  updateJobDescription,
-  updateJobInterviewConfig,
-  updateJobQuestionsConfig,
-} from '@/actions/job';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import {
+  usePublishJobMutation,
+  useUpdateJobBasicDetailsMutation,
+  useUpdateJobDescriptionMutation,
+  useUpdateJobInterviewConfigMutation,
+  useUpdateJobQuestionsConfigMutation,
+} from '@/hooks/use-job-queries';
 import { formSteps } from '@/lib/constants/job-constants';
 import type {
   BasicJobDetails,
@@ -38,47 +39,84 @@ interface JobDetailsPageProps {
 
 export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0); // Start from basic details
+  const [currentStep, setCurrentStep] = useQueryState('step', {
+    defaultValue: 0,
+    parse: (value) => parseInt(value) || 0,
+    serialize: (value) => value.toString(),
+  });
+
+  // Initialize mutations
+  const updateBasicDetailsMutation = useUpdateJobBasicDetailsMutation(jobId);
+  const updateDescriptionMutation = useUpdateJobDescriptionMutation(jobId);
+  const updateInterviewConfigMutation = useUpdateJobInterviewConfigMutation(jobId);
+  const updateQuestionsConfigMutation = useUpdateJobQuestionsConfigMutation(jobId);
+  const publishJobMutation = usePublishJobMutation();
+
   const [completionStatus, setCompletionStatus] = useState<JobStepCompletion>({
-    basicDetails: true, // Already completed in popup
-    description: false,
-    interviewConfig: false,
-    questionsConfig: false,
+    basicDetails: !!initialData?.title, // Mark as completed if we have initial data
+    description: !!initialData?.description,
+    interviewConfig: !!initialData?.interviewConfig,
+    questionsConfig: !!initialData?.questionsConfig,
   });
   const [jobData, setJobData] = useState(initialData || {});
-  const [isPublishing, setIsPublishing] = useState(false);
+
+  // Calculate if any mutation is loading
+  const isSaving =
+    updateBasicDetailsMutation.isPending ||
+    updateDescriptionMutation.isPending ||
+    updateInterviewConfigMutation.isPending ||
+    updateQuestionsConfigMutation.isPending;
+
+  const isPublishing = publishJobMutation.isPending;
 
   const completionPercentage = getStepCompletionPercentage(completionStatus);
 
-  const handleStepComplete = async (stepKey: string, data: Record<string, unknown>) => {
-    setCompletionStatus((prev) => ({
-      ...prev,
-      [stepKey]: true,
-    }));
-
-    setJobData((prev) => ({
-      ...prev,
-      ...data,
-    }));
-
-    // Save to database based on step
+  const handleStepComplete = async (
+    stepKey: string,
+    data: Record<string, unknown>,
+    shouldMoveNext = false
+  ) => {
     try {
+      // Save to database based on step using React Query mutations
+      let result;
       switch (stepKey) {
         case 'basicDetails':
-          await updateJobBasicDetails(jobId, data as BasicJobDetails);
+          result = await updateBasicDetailsMutation.mutateAsync(data as BasicJobDetails);
           break;
         case 'description':
-          await updateJobDescription(jobId, data as JobDescription);
+          result = await updateDescriptionMutation.mutateAsync(data as JobDescription);
           break;
         case 'interviewConfig':
-          await updateJobInterviewConfig(jobId, data as InterviewConfig);
+          result = await updateInterviewConfigMutation.mutateAsync(data as InterviewConfig);
           break;
         case 'questionsConfig':
-          await updateJobQuestionsConfig(jobId, data as QuestionsConfig);
+          result = await updateQuestionsConfigMutation.mutateAsync(data as QuestionsConfig);
           break;
+      }
+
+      // Check if the mutation was successful
+      if (result?.success) {
+        // Update local state only after successful save
+        setCompletionStatus((prev) => ({
+          ...prev,
+          [stepKey]: true,
+        }));
+
+        setJobData((prev) => ({
+          ...prev,
+          ...data,
+        }));
+
+        // Move to next step only if requested and save was successful
+        if (shouldMoveNext && currentStep < formSteps.length - 1) {
+          setCurrentStep(currentStep + 1);
+        }
+      } else {
+        console.error(`Error updating ${stepKey}:`, result?.error);
       }
     } catch (error) {
       console.error(`Error updating ${stepKey}:`, error);
+      // You might want to show a toast notification here
     }
   };
 
@@ -89,9 +127,8 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
   };
 
   const handlePublishJob = async () => {
-    setIsPublishing(true);
     try {
-      const result = await publishJob(jobId);
+      const result = await publishJobMutation.mutateAsync(jobId);
       if (result.success) {
         router.push('/jobs');
       } else {
@@ -99,8 +136,6 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
       }
     } catch (error) {
       console.error('Error publishing job:', error);
-    } finally {
-      setIsPublishing(false);
     }
   };
 
@@ -114,8 +149,10 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
         return (
           <BasicDetailsStep
             initialData={jobData}
-            onComplete={(data) => handleStepComplete('basicDetails', data)}
-            onNext={() => setCurrentStep(1)}
+            onComplete={(data: BasicJobDetails, shouldMoveNext?: boolean) =>
+              handleStepComplete('basicDetails', data, shouldMoveNext)
+            }
+            isSaving={isSaving}
           />
         );
       case 1:
@@ -130,18 +167,22 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             industry={jobData.industry || ''}
             skills={jobData.skills}
             location={jobData.location}
-            onComplete={(data) => handleStepComplete('description', data)}
-            onNext={() => setCurrentStep(2)}
+            onComplete={(data: JobDescription, shouldMoveNext?: boolean) =>
+              handleStepComplete('description', data, shouldMoveNext)
+            }
             onPrevious={() => setCurrentStep(0)}
+            isSaving={isSaving}
           />
         );
       case 2:
         return (
           <InterviewConfigStep
             initialData={jobData.interviewConfig}
-            onComplete={(data) => handleStepComplete('interviewConfig', data)}
-            onNext={() => setCurrentStep(3)}
+            onComplete={(data: InterviewConfig, shouldMoveNext?: boolean) =>
+              handleStepComplete('interviewConfig', data, shouldMoveNext)
+            }
             onPrevious={() => setCurrentStep(1)}
+            isSaving={isSaving}
           />
         );
       case 3:
@@ -151,9 +192,11 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             industry={jobData.industry || ''}
             jobTitle={jobData.title}
             difficultyLevel={jobData.interviewConfig?.difficultyLevel}
-            onComplete={(data) => handleStepComplete('questionsConfig', data)}
-            onNext={() => setCurrentStep(4)}
+            onComplete={(data: QuestionsConfig, shouldMoveNext?: boolean) =>
+              handleStepComplete('questionsConfig', data, shouldMoveNext)
+            }
             onPrevious={() => setCurrentStep(2)}
+            isSaving={isSaving}
           />
         );
       case 4:

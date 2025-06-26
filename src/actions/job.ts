@@ -184,13 +184,18 @@ export async function updateJobDescription(jobId: string, data: JobDescription) 
   try {
     await connectToDatabase();
 
+    // Sanitize the data to prevent circular references
+    const sanitizedData = {
+      description: String(data.description || ''),
+      requirements: data.requirements ? String(data.requirements) : undefined,
+      benefits: data.benefits ? String(data.benefits) : undefined,
+    };
+
     const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       {
         $set: {
-          description: data.description,
-          requirements: data.requirements,
-          benefits: data.benefits,
+          ...sanitizedData,
           updatedAt: new Date(),
         },
       },
@@ -223,11 +228,26 @@ export async function updateJobInterviewConfig(jobId: string, data: InterviewCon
   try {
     await connectToDatabase();
 
+    // Sanitize the data to prevent circular references and ensure clean object
+    const sanitizedData = {
+      duration: Number(data.duration),
+      instructions: data.instructions || '',
+      difficultyLevel: data.difficultyLevel,
+      screenMonitoring: Boolean(data.screenMonitoring),
+      screenMonitoringMode: data.screenMonitoringMode,
+      screenMonitoringInterval: Number(data.screenMonitoringInterval),
+      cameraMonitoring: Boolean(data.cameraMonitoring),
+      cameraMonitoringMode: data.cameraMonitoringMode,
+      cameraMonitoringInterval: Number(data.cameraMonitoringInterval),
+    };
+
+    console.log('Updating interview config with data:', sanitizedData);
+
     const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       {
         $set: {
-          interviewConfig: data,
+          interviewConfig: sanitizedData,
           updatedAt: new Date(),
         },
       },
@@ -240,10 +260,6 @@ export async function updateJobInterviewConfig(jobId: string, data: InterviewCon
 
     return {
       success: true,
-      data: {
-        id: updatedJob.id,
-        interviewConfig: updatedJob.interviewConfig,
-      },
     };
   } catch (error) {
     console.error('Failed to update interview config:', error);
@@ -258,11 +274,34 @@ export async function updateJobQuestionsConfig(jobId: string, data: QuestionsCon
   try {
     await connectToDatabase();
 
+    // Sanitize the data to prevent circular references
+    const sanitizedData = {
+      mode: data.mode,
+      totalQuestions: Number(data.totalQuestions),
+      categoryConfigs: Array.isArray(data.categoryConfigs)
+        ? data.categoryConfigs.map((config) => ({
+            type: String(config.type),
+            numberOfQuestions: Number(config.numberOfQuestions),
+          }))
+        : [],
+      questionTypes: Array.isArray(data.questionTypes)
+        ? data.questionTypes.map((type) => String(type))
+        : [],
+      questions: Array.isArray(data.questions)
+        ? data.questions.map((question) => ({
+            id: String(question.id),
+            type: String(question.type),
+            question: String(question.question),
+            isAIGenerated: Boolean(question.isAIGenerated),
+          }))
+        : undefined,
+    };
+
     const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       {
         $set: {
-          questionsConfig: data,
+          questionsConfig: sanitizedData,
           updatedAt: new Date(),
         },
       },
@@ -565,19 +604,24 @@ export async function updateJobBasicDetails(jobId: string, data: BasicJobDetails
   try {
     await connectToDatabase();
 
+    // Sanitize the data to prevent circular references
+    const sanitizedData = {
+      title: String(data.title),
+      organizationId: String(data.organizationId),
+      industry: String(data.industry),
+      location: String(data.location),
+      salary: data.salary ? String(data.salary) : undefined,
+      currency: data.currency ? String(data.currency) : undefined,
+      skills: Array.isArray(data.skills) ? data.skills.map((skill) => String(skill)) : [],
+      status: data.status,
+      expiryDate: data.expiryDate instanceof Date ? data.expiryDate : new Date(data.expiryDate),
+    };
+
     const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       {
         $set: {
-          title: data.title,
-          organizationId: data.organizationId,
-          industry: data.industry,
-          location: data.location,
-          salary: data.salary,
-          currency: data.currency,
-          skills: data.skills,
-          status: data.status,
-          expiryDate: data.expiryDate,
+          ...sanitizedData,
           updatedAt: new Date(),
         },
       },
