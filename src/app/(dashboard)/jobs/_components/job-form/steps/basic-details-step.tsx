@@ -223,7 +223,7 @@ export function BasicDetailsStep({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Industry *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select industry" />
@@ -387,11 +387,24 @@ export function BasicDetailsStep({
 
               {/* Selected skills */}
               {skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="gap-1">
-                      {skill}
-                      <X className="h-3 w-3 cursor-pointer" onClick={() => removeSkill(skill)} />
+                    <Badge
+                      key={skill}
+                      variant="secondary"
+                      className="px-3 py-2 text-sm font-medium flex items-center gap-2 hover:bg-secondary/80 transition-colors"
+                    >
+                      <span>{skill}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                        onClick={() => removeSkill(skill)}
+                        aria-label={`Remove ${skill} skill`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </Badge>
                   ))}
                 </div>

@@ -12,6 +12,7 @@ import {
   generateJobDescription,
   getJobById,
   publishJob,
+  saveDraftJob,
   updateJobBasicDetails,
   updateJobDescription,
   updateJobInterviewConfig,
@@ -125,6 +126,19 @@ export function usePublishJobMutation() {
 
   return useMutation({
     mutationFn: (jobId: string) => publishJob(jobId),
+    onSuccess: (_, jobId) => {
+      queryClient.invalidateQueries({ queryKey: jobQueryKeys.detail(jobId) });
+      queryClient.invalidateQueries({ queryKey: jobQueryKeys.lists() });
+    },
+  });
+}
+
+// Save Draft Job Mutation
+export function useSaveDraftJobMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (jobId: string) => saveDraftJob(jobId),
     onSuccess: (_, jobId) => {
       queryClient.invalidateQueries({ queryKey: jobQueryKeys.detail(jobId) });
       queryClient.invalidateQueries({ queryKey: jobQueryKeys.lists() });

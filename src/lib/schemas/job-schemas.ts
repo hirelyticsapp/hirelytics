@@ -95,6 +95,7 @@ export const jobStepCompletionSchema = z.object({
   description: z.boolean().default(false),
   interviewConfig: z.boolean().default(false),
   questionsConfig: z.boolean().default(false),
+  review: z.boolean().default(false),
 });
 
 export type BasicJobDetails = z.infer<typeof basicJobDetailsSchema>;

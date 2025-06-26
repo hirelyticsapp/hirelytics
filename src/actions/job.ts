@@ -314,10 +314,6 @@ export async function updateJobQuestionsConfig(jobId: string, data: QuestionsCon
 
     return {
       success: true,
-      data: {
-        id: updatedJob.id,
-        questionsConfig: updatedJob.questionsConfig,
-      },
     };
   } catch (error) {
     console.error('Failed to update questions config:', error);
@@ -359,6 +355,41 @@ export async function publishJob(jobId: string) {
     return {
       success: false,
       error: 'Failed to publish job',
+    };
+  }
+}
+
+export async function saveDraftJob(jobId: string) {
+  try {
+    await connectToDatabase();
+
+    const updatedJob = await Job.findByIdAndUpdate(
+      jobId,
+      {
+        $set: {
+          status: 'draft',
+          updatedAt: new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedJob) {
+      return { success: false, error: 'Job not found' };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: updatedJob.id,
+        status: updatedJob.status,
+      },
+    };
+  } catch (error) {
+    console.error('Failed to save job as draft:', error);
+    return {
+      success: false,
+      error: 'Failed to save job as draft',
     };
   }
 }

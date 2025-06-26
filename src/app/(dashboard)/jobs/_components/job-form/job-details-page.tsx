@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQueryState } from 'nuqs';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   usePublishJobMutation,
+  useSaveDraftJobMutation,
   useUpdateJobBasicDetailsMutation,
   useUpdateJobDescriptionMutation,
   useUpdateJobInterviewConfigMutation,
@@ -39,6 +41,7 @@ interface JobDetailsPageProps {
 
 export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useQueryState('step', {
     defaultValue: 0,
     parse: (value) => parseInt(value) || 0,
@@ -51,12 +54,14 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
   const updateInterviewConfigMutation = useUpdateJobInterviewConfigMutation(jobId);
   const updateQuestionsConfigMutation = useUpdateJobQuestionsConfigMutation(jobId);
   const publishJobMutation = usePublishJobMutation();
+  const saveDraftJobMutation = useSaveDraftJobMutation();
 
   const [completionStatus, setCompletionStatus] = useState<JobStepCompletion>({
     basicDetails: !!initialData?.title, // Mark as completed if we have initial data
     description: !!initialData?.description,
     interviewConfig: !!initialData?.interviewConfig,
     questionsConfig: !!initialData?.questionsConfig,
+    review: false, // Review step is never pre-completed
   });
   const [jobData, setJobData] = useState(initialData || {});
 
@@ -68,6 +73,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
     updateQuestionsConfigMutation.isPending;
 
   const isPublishing = publishJobMutation.isPending;
+  const isSavingDraft = saveDraftJobMutation.isPending;
 
   const completionPercentage = getStepCompletionPercentage(completionStatus);
 
@@ -96,6 +102,10 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
 
       // Check if the mutation was successful
       if (result?.success) {
+        // Invalidate job queries to refetch data
+        await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+
         // Update local state only after successful save
         setCompletionStatus((prev) => ({
           ...prev,
@@ -130,12 +140,43 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
     try {
       const result = await publishJobMutation.mutateAsync(jobId);
       if (result.success) {
+        // Invalidate job queries to refetch data
+        await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+
+        // Update local job data to reflect the new status
+        setJobData((prev) => ({
+          ...prev,
+          status: 'published',
+        }));
         router.push('/jobs');
       } else {
         console.error('Error publishing job:', result.error);
       }
     } catch (error) {
       console.error('Error publishing job:', error);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    try {
+      const result = await saveDraftJobMutation.mutateAsync(jobId);
+      if (result.success) {
+        // Invalidate job queries to refetch data
+        await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+
+        // Update local job data to reflect the new status
+        setJobData((prev) => ({
+          ...prev,
+          status: 'draft',
+        }));
+        router.push('/jobs');
+      } else {
+        console.error('Error saving draft:', result.error);
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
     }
   };
 
@@ -204,8 +245,10 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
           <JobReviewStep
             jobData={jobData}
             onPublish={handlePublishJob}
+            onSaveDraft={handleSaveDraft}
             onPrevious={() => setCurrentStep(3)}
             isPublishing={isPublishing}
+            isSavingDraft={isSavingDraft}
             canPublish={canPublish}
           />
         );
@@ -218,7 +261,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
     <div className="min-h-screen bg-background">
       {/* Mobile-friendly header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4">
+        <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={() => router.back()}>
@@ -240,7 +283,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
       </div>
 
       {/* Mobile-friendly step navigation */}
-      <div className="container mx-auto px-4 py-4">
+      <div className="w-full px-6 py-4">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
           {allSteps.map((step, index) => {
             const isCompleted = completionStatus[step.key as keyof JobStepCompletion];
@@ -279,8 +322,8 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
           })}
         </div>
 
-        {/* Step content */}
-        <div className="max-w-4xl mx-auto">{renderStepContent()}</div>
+        {/* Step content - Full width */}
+        <div className="w-full">{renderStepContent()}</div>
       </div>
     </div>
   );

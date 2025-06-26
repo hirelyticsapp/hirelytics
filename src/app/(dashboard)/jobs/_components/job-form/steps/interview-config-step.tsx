@@ -173,7 +173,7 @@ export function InterviewConfigStep({
                 <FormItem>
                   <FormLabel>Difficulty Level *</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-4 md:grid-cols-5 gap-2">
                       {difficultyLevels.map((level) => {
                         const levelInfo = getDifficultyLevelInfo(level.value);
                         const IconComponent = levelInfo.icon;
@@ -189,14 +189,14 @@ export function InterviewConfigStep({
                             }`}
                             onClick={() => field.onChange(level.value)}
                           >
-                            <CardContent className="p-3 text-center">
+                            <CardContent className="p-2 text-center">
                               <div
                                 className={`mx-auto p-2 rounded-full ${levelInfo.colorClass} w-fit mb-2`}
                               >
                                 <IconComponent className="h-4 w-4" />
                               </div>
-                              <h4 className="font-medium text-sm leading-tight">{level.label}</h4>
-                              <p className="text-xs text-muted-foreground mt-1 leading-tight">
+                              <h4 className="font-semibold text-sm leading-tight">{level.label}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 leading-tight line-clamp-2">
                                 {level.description}
                               </p>
                             </CardContent>

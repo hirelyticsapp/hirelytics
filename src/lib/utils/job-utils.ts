@@ -67,10 +67,20 @@ export function getDifficultyLevelInfo(level: string) {
 export function canAccessStep(stepIndex: number, completionStatus: Record<string, boolean>) {
   if (stepIndex === 0) return true; // Basic details step is always accessible
 
-  const stepKeys = ['basicDetails', 'description', 'interviewConfig', 'questionsConfig'];
+  const stepKeys = ['basicDetails', 'description', 'interviewConfig', 'questionsConfig', 'review'];
 
   // For basic details, always allow access
   if (stepIndex === 0) return true;
+
+  // For review step (index 4), allow access if all previous steps are completed
+  if (stepIndex === 4) {
+    return (
+      completionStatus.basicDetails &&
+      completionStatus.description &&
+      completionStatus.interviewConfig &&
+      completionStatus.questionsConfig
+    );
+  }
 
   // Check if all previous steps are completed
   for (let i = 0; i < stepIndex; i++) {
@@ -86,8 +96,13 @@ export function canAccessStep(stepIndex: number, completionStatus: Record<string
  * Get step completion percentage
  */
 export function getStepCompletionPercentage(completionStatus: Record<string, boolean>) {
-  const totalSteps = 4;
-  const completedSteps = Object.values(completionStatus).filter(Boolean).length;
+  const totalSteps = 4; // We count only the configuration steps, not the review
+  const completedSteps = [
+    'basicDetails',
+    'description',
+    'interviewConfig',
+    'questionsConfig',
+  ].filter((step) => completionStatus[step]).length;
   return Math.round((completedSteps / totalSteps) * 100);
 }
 

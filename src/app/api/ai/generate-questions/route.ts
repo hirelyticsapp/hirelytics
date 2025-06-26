@@ -2,8 +2,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { questionType, numberOfQuestions, industry, difficultyLevel, jobTitle } =
-      await request.json();
+    const {
+      questionType,
+      numberOfQuestions,
+      industry,
+      difficultyLevel: _difficultyLevel,
+      jobTitle,
+    } = await request.json();
 
     // Simulate AI generation delay
     await new Promise((resolve) => setTimeout(resolve, 1500));

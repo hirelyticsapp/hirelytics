@@ -271,6 +271,12 @@ export const formSteps = [
     description: 'Question types and configuration',
     key: 'questionsConfig',
   },
+  {
+    id: 5,
+    title: 'Review',
+    description: 'Review all details and publish job',
+    key: 'review',
+  },
 ];
 
 // Industries list
