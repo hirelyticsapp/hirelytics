@@ -2,6 +2,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Edit, Eye, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
 import { X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { fetchJobs } from '@/actions/job';
 import { DataTable } from '@/components/data-table/data-table';
@@ -17,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { IJob } from '@/db';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useTableParams } from '@/hooks/use-table-params';
+
+import { CreateJobPopup } from './job-form/create-job-popup';
 
 export default function JobTable() {
   // const [open, setOpen] = useState(false);
@@ -181,6 +184,13 @@ export default function JobTable() {
     },
   ];
 
+  const router = useRouter();
+
+  const handleJobCreated = (jobId: string) => {
+    // Redirect to job details page for step-by-step completion
+    router.push(`/jobs/${jobId}/setup`);
+  };
+
   return (
     <div className="container mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -198,6 +208,7 @@ export default function JobTable() {
           }}
           candidate={selectedUser as IUser}
         /> */}
+        <CreateJobPopup onJobCreated={handleJobCreated} />
       </div>
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
         <div className="flex-1">
