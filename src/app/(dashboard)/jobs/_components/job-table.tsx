@@ -1,9 +1,9 @@
 'use client';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Edit, Eye, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, RefreshCw, SettingsIcon } from 'lucide-react';
 import { X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-import { fetchJobs } from '@/actions/job';
 import { DataTable } from '@/components/data-table/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,19 +15,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { IJob } from '@/db';
-import { useDataTable } from '@/hooks/use-data-table';
+import { useJobsQuery } from '@/hooks/use-job-queries';
 import { useTableParams } from '@/hooks/use-table-params';
 
+import { CreateJobPopup } from './job-form/create-job-popup';
+
 export default function JobTable() {
-  // const [open, setOpen] = useState(false);
-  // const [jobDeleteOpen, setJobDeleteOpen] = useState(false);
-  // const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
-  // const [selectedJob, setSelectedJob] = useState<IJob | null>(null);
   const { pagination, filters, sorting, setSearch, setRole, setStatus } = useTableParams();
-  const { data, totalCount, pageCount, isLoading, error, refetch } = useDataTable({
-    queryKey: ['jobs', pagination, filters, sorting],
-    queryFn: () => fetchJobs(pagination, filters, sorting),
-  });
+  const { data: jobsData, isLoading, error, refetch } = useJobsQuery(pagination, filters, sorting);
+
+  const data = jobsData?.data || [];
+  const totalCount = jobsData?.totalCount || 0;
+  const pageCount = jobsData?.pageCount || 0;
 
   const clearFilters = () => {
     setSearch('');
@@ -37,7 +36,7 @@ export default function JobTable() {
 
   const hasActiveFilters = filters.search || filters.role || filters.status;
 
-  const columns: ColumnDef<IJob>[] = [
+  const columns: ColumnDef<Partial<IJob>>[] = [
     {
       accessorKey: 'title',
       header: ({ column }) => (
@@ -148,38 +147,23 @@ export default function JobTable() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={() => {
-                // setSelectedJob(row.original);
-                // setJobDetailsOpen(true);
+                router.push(`/jobs/${_row.original.id}`);
               }}
             >
-              <Eye className="mr-2 h-4 w-4" />
-              View
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                // setSelectedJob(row.original);
-                // setOpen(true);
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                // setSelectedJob(row.original);
-                // setJobDeleteOpen(true);
-              }}
-              className="text-destructive"
-              disabled={false}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              Manage and Edit
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
     },
   ];
+
+  const router = useRouter();
+
+  const handleJobCreated = (jobId: string) => {
+    router.push(`/jobs/${jobId}`);
+  };
 
   return (
     <div className="container mx-auto space-y-6">
@@ -198,6 +182,7 @@ export default function JobTable() {
           }}
           candidate={selectedUser as IUser}
         /> */}
+        <CreateJobPopup onJobCreated={handleJobCreated} />
       </div>
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
         <div className="flex-1">

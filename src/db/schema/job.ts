@@ -168,7 +168,6 @@ const JobSchema = new Schema<IJob>(
     },
     description: {
       type: String,
-      required: [true, 'Please provide a job description'],
     },
     organizationId: {
       type: Schema.Types.ObjectId,
