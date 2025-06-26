@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createContext } from 'react';
 
 import { ISession, IUser } from '@/db';
+import { getQueryClient } from '@/lib/query-client';
 
 export interface AuthContextType {
   user: IUser | undefined;
@@ -17,6 +18,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const queryClient = getQueryClient();
   const fetchSessionQuery = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -31,7 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data;
     },
     onSuccess: () => {
-      fetchSessionQuery.refetch();
+      // Invalidate the session query to refetch user data
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       router.refresh();
     },
   });

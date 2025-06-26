@@ -1,12 +1,5 @@
 'use client';
 
-import {
-  IconBasketQuestion,
-  IconBriefcase,
-  IconBuilding,
-  IconDashboard,
-  IconUsers,
-} from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -26,55 +19,12 @@ import {
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 
+import { getNavigationMenus } from './menus';
 import { NavUser } from './nav-user';
-
-const navigation = [
-  {
-    title: 'Main',
-    items: [
-      {
-        title: 'Dashboard',
-        url: '/',
-        icon: IconDashboard,
-        color: 'text-blue-500',
-      },
-      {
-        title: 'Organizations',
-        url: '/organizations',
-        icon: IconBuilding,
-        color: 'text-cyan-500',
-      },
-      {
-        title: 'Candidates',
-        url: '/candidates',
-        icon: IconUsers,
-        color: 'text-indigo-500',
-      },
-      {
-        title: 'Recruiters',
-        url: '/recruiters',
-        icon: IconUsers,
-        color: 'text-teal-500',
-      },
-      {
-        title: 'Jobs',
-        url: '/jobs',
-        icon: IconBriefcase,
-        color: 'text-orange-500',
-      },
-      {
-        title: 'Portal Access Requests',
-        url: '/portal-access-requests',
-        icon: IconBasketQuestion,
-        color: 'text-orange-500',
-      },
-    ],
-  },
-];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const isActiveItem = (url: string) => {
     if (url === '/') {
@@ -82,6 +32,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
     return pathname.startsWith(`/${url}`);
   };
+
+  const navigation = getNavigationMenus(user?.role);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -111,60 +63,62 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        {navigation.map((group, index) => (
-          <SidebarGroup key={index}>
-            {group.title && (
-              <SidebarGroupLabel className="text-xs font-medium text-muted-foreground/70">
-                {group.title}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive = isActiveItem(item.url);
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={item.title}
-                        className={`group relative overflow-hidden transition-all duration-200 px-1 py-3 ${
-                          isActive
-                            ? 'bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/70'
-                        }`}
-                      >
-                        <Link href={`${item.url}`}>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`p-1.5 rounded-md transition-colors ${
-                                isActive
-                                  ? `bg-primary/20 ${item.color || 'text-primary'}`
-                                  : `bg-background/50 ${item.color || 'text-muted-foreground'}`
-                              }`}
-                            >
-                              <item.icon className="size-4" />
+      {!loading && (
+        <SidebarContent>
+          {navigation.map((group, index) => (
+            <SidebarGroup key={index}>
+              {group.title && (
+                <SidebarGroupLabel className="text-xs font-medium text-muted-foreground/70">
+                  {group.title}
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const isActive = isActiveItem(item.url);
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={item.title}
+                          className={`group relative overflow-hidden transition-all duration-200 px-1 py-3 ${
+                            isActive
+                              ? 'bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                          }`}
+                        >
+                          <Link href={`${item.url}`}>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`p-1.5 rounded-md transition-colors ${
+                                  isActive
+                                    ? `bg-primary/20 ${item.color || 'text-primary'}`
+                                    : `bg-background/50 ${item.color || 'text-muted-foreground'}`
+                                }`}
+                              >
+                                <item.icon className="size-4" />
+                              </div>
+                              <span
+                                className={`text-sm font-medium ${isActive ? 'text-primary' : ''}`}
+                              >
+                                {item.title}
+                              </span>
                             </div>
-                            <span
-                              className={`text-sm font-medium ${isActive ? 'text-primary' : ''}`}
-                            >
-                              {item.title}
-                            </span>
-                          </div>
-                          {/* Active indicator */}
-                          {isActive && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent dark:from-primary/15" />
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
+                            {/* Active indicator */}
+                            {isActive && (
+                              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent dark:from-primary/15" />
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+      )}
 
       <SidebarFooter>
         <NavUser />
