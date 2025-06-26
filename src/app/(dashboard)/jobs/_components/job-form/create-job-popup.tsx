@@ -7,6 +7,8 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Resolver, useForm } from 'react-hook-form';
 
+import { createJobFromBasicDetails } from '@/actions/job';
+import { getIndustrySkills, getOrganizations } from '@/actions/organization';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/hooks/use-auth';
 import { industriesData } from '@/lib/constants/industry-data';
 import { currencies } from '@/lib/constants/job-constants';
 import { type BasicJobDetails, basicJobDetailsSchema } from '@/lib/schemas/job-schemas';
@@ -47,10 +50,10 @@ interface CreateJobPopupProps {
 interface Organization {
   id: string;
   name: string;
-  industry: string;
 }
 
 export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [skillInput, setSkillInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,8 +82,7 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await fetch('/api/organizations');
-        const result = await response.json();
+        const result = await getOrganizations();
         if (result.success) {
           setOrganizations(result.data);
         }
@@ -98,8 +100,7 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
       const fetchSkills = async () => {
         setLoadingSkills(true);
         try {
-          const response = await fetch(`/api/industries/${selectedIndustry}/skills`);
-          const result = await response.json();
+          const result = await getIndustrySkills(selectedIndustry);
           if (result.success) {
             setAvailableSkills(result.data);
           }
@@ -151,14 +152,17 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
     try {
       console.log('Creating job with basic details:', data);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Pass the current user's ID as the recruiter
+      const result = await createJobFromBasicDetails(data, user?.id);
 
-      const jobId = `job_${Date.now()}`;
-
-      setOpen(false);
-      form.reset();
-      onJobCreated(jobId);
+      if (result.success && result.data) {
+        setOpen(false);
+        form.reset();
+        onJobCreated(result.data.id);
+      } else {
+        console.error('Failed to create job:', result.error);
+        // You might want to show a toast or error message here
+      }
     } catch (error) {
       console.error('Error creating job:', error);
     } finally {

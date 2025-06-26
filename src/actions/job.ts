@@ -4,6 +4,7 @@ import { PaginationState } from '@tanstack/react-table';
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IJob } from '@/db';
 import Job from '@/db/schema/job';
+import { BasicJobDetails } from '@/lib/schemas/job-schemas';
 
 export async function fetchJobs(
   pagination: PaginationState,
@@ -58,6 +59,70 @@ export async function fetchJobs(
     totalCount,
     pageCount: Math.ceil(totalCount / limit),
   };
+}
+
+// New createJob function for BasicJobDetails
+export async function createJobFromBasicDetails(data: BasicJobDetails, recruiterId?: string) {
+  try {
+    await connectToDatabase();
+
+    // Create the job with basic details
+    const job = new Job({
+      title: data.title,
+      organizationId: data.organizationId,
+      industry: data.industry,
+      location: data.location,
+      salary: data.salary,
+      currency: data.currency,
+      skills: data.skills,
+      status: data.status || 'draft',
+      expiryDate: data.expiryDate,
+      description: '', // Will be filled in later steps
+      recruiter: recruiterId || null, // Set from the provided recruiter ID
+      interviewConfig: {
+        duration: 30,
+        difficultyLevel: 'normal',
+        screenMonitoring: false,
+        screenMonitoringMode: 'photo',
+        screenMonitoringInterval: 30,
+        cameraMonitoring: false,
+        cameraMonitoringMode: 'photo',
+        cameraMonitoringInterval: 30,
+      },
+      questionsConfig: {
+        mode: 'ai-mode',
+        totalQuestions: 5,
+        categoryConfigs: [],
+        questionTypes: [],
+      },
+    });
+
+    const savedJob = (await job.save()) as IJob;
+
+    return {
+      success: true,
+      data: {
+        id: savedJob.id,
+        title: savedJob.title,
+        organizationId: savedJob.organizationId.toString(),
+        industry: savedJob.industry,
+        location: savedJob.location,
+        salary: savedJob.salary,
+        currency: savedJob.currency,
+        skills: savedJob.skills,
+        status: savedJob.status,
+        expiryDate: savedJob.expiryDate,
+        createdAt: savedJob.createdAt,
+      },
+    };
+  } catch (error) {
+    console.error('Failed to create job:', error);
+    return {
+      success: false,
+      error: 'Failed to create job',
+      data: null,
+    };
+  }
 }
 
 export async function createJob(data: Partial<IJob>): Promise<Partial<IJob>> {

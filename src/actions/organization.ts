@@ -7,6 +7,7 @@ import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IOrganization } from '@/db';
 import Organization from '@/db/schema/organization';
 import { env } from '@/env';
+import { industriesData } from '@/lib/constants/industry-data';
 import { createS3Client } from '@/lib/s3-client';
 
 export async function fetchOrganizations(
@@ -149,5 +150,59 @@ export async function deleteOrganization(id: string): Promise<void> {
 
   if (!result) {
     throw new Error('Organization not found');
+  }
+}
+
+// Server action to get all organizations for forms/dropdowns
+export async function getOrganizations() {
+  try {
+    await connectToDatabase();
+
+    const organizations = await Organization.find({ deleted: { $ne: true } })
+      .select('_id name')
+      .sort({ name: 1 })
+      .lean();
+
+    return {
+      success: true,
+      data: organizations.map((org) => ({
+        id: org._id.toString(),
+        name: org.name,
+      })),
+    };
+  } catch (error) {
+    console.error('Failed to fetch organizations:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch organizations',
+      data: [],
+    };
+  }
+}
+
+// Server action to get skills for a specific industry
+export async function getIndustrySkills(industry: string) {
+  try {
+    const industryData = industriesData[industry as keyof typeof industriesData];
+
+    if (!industryData) {
+      return {
+        success: false,
+        error: 'Industry not found',
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      data: industryData.skills,
+    };
+  } catch (error) {
+    console.error('Failed to fetch skills:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch skills',
+      data: [],
+    };
   }
 }
