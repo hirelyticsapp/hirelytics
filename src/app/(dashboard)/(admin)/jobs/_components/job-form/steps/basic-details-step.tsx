@@ -364,7 +364,7 @@ export function BasicDetailsStep({
                       <span className="text-sm text-muted-foreground">Loading skills...</span>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                       {availableSkills.map((skill) => (
                         <div key={skill} className="flex items-center space-x-2">
                           <Checkbox

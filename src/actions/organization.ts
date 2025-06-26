@@ -5,8 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IOrganization } from '@/db';
+import Member from '@/db/schema/member';
 import Organization from '@/db/schema/organization';
 import { env } from '@/env';
+import { auth } from '@/lib/auth/server';
 import { industriesData } from '@/lib/constants/industry-data';
 import { createS3Client } from '@/lib/s3-client';
 
@@ -158,7 +160,18 @@ export async function getOrganizations() {
   try {
     await connectToDatabase();
 
-    const organizations = await Organization.find({ deleted: { $ne: true } })
+    const { isRecruiter, user } = await auth();
+    const filter: Record<string, unknown> = {
+      deleted: { $ne: true },
+    };
+
+    if (isRecruiter) {
+      const userId = user?.id;
+      const member = await Member.findOne({ userId });
+      filter['_id'] = member?.organizationId;
+    }
+
+    const organizations = await Organization.find(filter)
       .select('_id name')
       .sort({ name: 1 })
       .lean();
@@ -202,6 +215,56 @@ export async function getIndustrySkills(industry: string) {
     return {
       success: false,
       error: 'Failed to fetch skills',
+      data: [],
+    };
+  }
+}
+
+export async function getMyOrganizationsForRecruiters() {
+  try {
+    await connectToDatabase();
+
+    const { user } = await auth();
+    if (!user || !user.id || user.role !== 'recruiter') {
+      return {
+        success: false,
+        error: 'User not authenticated',
+        data: [],
+      };
+    }
+    const userId = user?.id;
+
+    const members = await Member.findOne({ userId });
+    if (!members) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+    const organizationIds = members.organizationId;
+
+    const organizations = await Organization.findById(organizationIds)
+      .select('_id name slug logo description createdAt updatedAt')
+      .sort({ name: 1 })
+      .lean();
+
+    return {
+      success: true,
+      data: {
+        id: organizations?._id.toString(),
+        name: organizations?.name,
+        slug: organizations?.slug,
+        logo: organizations?.logo,
+        description: organizations?.description,
+        createdAt: organizations?.createdAt,
+        updatedAt: organizations?.updatedAt,
+      },
+    };
+  } catch (error) {
+    console.error('Failed to fetch organizations:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch organizations',
       data: [],
     };
   }

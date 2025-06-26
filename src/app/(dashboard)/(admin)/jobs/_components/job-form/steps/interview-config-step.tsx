@@ -173,7 +173,7 @@ export function InterviewConfigStep({
                 <FormItem>
                   <FormLabel>Difficulty Level *</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-4 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
                       {difficultyLevels.map((level) => {
                         const levelInfo = getDifficultyLevelInfo(level.value);
                         const IconComponent = levelInfo.icon;
@@ -195,8 +195,10 @@ export function InterviewConfigStep({
                               >
                                 <IconComponent className="h-4 w-4" />
                               </div>
-                              <h4 className="font-semibold text-sm leading-tight">{level.label}</h4>
-                              <p className="text-xs text-muted-foreground mt-1 leading-tight line-clamp-2">
+                              <h4 className="font-semibold text-base leading-tight">
+                                {level.label}
+                              </h4>
+                              <p className="text-sm text-muted-foreground mt-1 leading-tight line-clamp-2">
                                 {level.description}
                               </p>
                             </CardContent>

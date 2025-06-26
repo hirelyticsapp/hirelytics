@@ -5,6 +5,8 @@ import { PaginationState } from '@tanstack/react-table';
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IJob } from '@/db';
 import Job from '@/db/schema/job';
+import Member from '@/db/schema/member';
+import { auth } from '@/lib/auth/server';
 import {
   BasicJobDetails,
   InterviewConfig,
@@ -18,6 +20,10 @@ export async function fetchJobs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sorting: any[]
 ): Promise<TableData<Partial<IJob>>> {
+  await connectToDatabase();
+
+  const { isRecruiter, user } = await auth();
+
   pagination.pageIndex = pagination.pageIndex || 0;
   const limit = pagination.pageSize || 10;
   const skip = pagination.pageIndex * limit;
@@ -31,15 +37,17 @@ export async function fetchJobs(
     ];
   }
 
+  if (isRecruiter) {
+    const userId = user?.id;
+    const member = await Member.findOne({ userId });
+    filter['organizationId'] = member?.organizationId;
+  }
+
   if (filters.status) {
     filter['status'] = filters.status;
   }
 
   filter['deleted'] = { $ne: true };
-
-  await connectToDatabase();
-
-  console.log('Fetching organizations with filters:', filter);
 
   const [totalCount, data] = await Promise.all([
     Job.countDocuments(filter),
