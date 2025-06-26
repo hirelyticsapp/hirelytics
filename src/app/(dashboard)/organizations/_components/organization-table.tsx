@@ -1,7 +1,16 @@
 'use client';
+
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Edit, Eye, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
-import { X } from 'lucide-react';
+import {
+  ArrowUpDown,
+  Edit,
+  Eye,
+  MoreHorizontal,
+  RefreshCw,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import { fetchOrganizations } from '@/actions/organization';
@@ -20,6 +29,7 @@ import { IOrganization } from '@/db';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useTableParams } from '@/hooks/use-table-params';
 
+import ManageMembers from './manage-recruiter-to-organization';
 import OrganizationCreateUpdateForm from './organization-create-update-form';
 import OrganizationDetails from './organization-details';
 import RecruiterRemoveConfirmation from './organization-remove-confiirmation';
@@ -28,6 +38,7 @@ export default function OrganizationTable() {
   const [open, setOpen] = useState(false);
   const [organizationDeleteOpen, setOrganizationDeleteOpen] = useState(false);
   const [organizationDetailsOpen, setOrganizationDetailsOpen] = useState(false);
+  const [addRecruiterOpen, setAddRecruiterOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState<IOrganization | null>(null);
   const { pagination, filters, sorting, setSearch, setRole, setStatus } = useTableParams();
   const { data, totalCount, pageCount, isLoading, error, refetch } = useDataTable({
@@ -133,6 +144,15 @@ export default function OrganizationTable() {
             <DropdownMenuItem
               onClick={() => {
                 setSelectedOrganization(row.original);
+                setAddRecruiterOpen(true);
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Manage Members
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedOrganization(row.original);
                 setOpen(true);
               }}
             >
@@ -224,6 +244,11 @@ export default function OrganizationTable() {
               open={organizationDetailsOpen}
               setOpen={setOrganizationDetailsOpen}
               selectedOrganization={selectedOrganization}
+            />
+            <ManageMembers
+              open={addRecruiterOpen}
+              setOpen={setAddRecruiterOpen}
+              organization={selectedOrganization}
             />
           </>
         )}
