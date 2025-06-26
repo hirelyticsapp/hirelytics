@@ -1,8 +1,9 @@
 'use client';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, MoreHorizontal, RefreshCw, SettingsIcon } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, RefreshCw, SendIcon, SettingsIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { DataTable } from '@/components/data-table/data-table';
 import { Badge } from '@/components/ui/badge';
@@ -18,9 +19,13 @@ import { IJob } from '@/db';
 import { useJobsQuery } from '@/hooks/use-job-queries';
 import { useTableParams } from '@/hooks/use-table-params';
 
+import InviteCandidateForm from './invite-candidate-form';
 import { CreateJobPopup } from './job-form/create-job-popup';
 
 export default function JobTable() {
+  const [candidateInviteOpen, setCandidateInviteOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Partial<IJob> | null>(null);
+
   const { pagination, filters, sorting, setSearch, setRole, setStatus } = useTableParams();
   const { data: jobsData, isLoading, error, refetch } = useJobsQuery(pagination, filters, sorting);
 
@@ -136,7 +141,7 @@ export default function JobTable() {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row: _row }) => (
+      cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -147,11 +152,20 @@ export default function JobTable() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={() => {
-                router.push(`/jobs/${_row.original.id}`);
+                router.push(`/jobs/${row.original.id}`);
               }}
             >
               <SettingsIcon className="mr-2 h-4 w-4" />
               Manage and Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedJob(row.original);
+                setCandidateInviteOpen(true);
+              }}
+            >
+              <SendIcon className="mr-2 h-4 w-4" />
+              Invite Candidates
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -201,6 +215,11 @@ export default function JobTable() {
             </Button>
           </div>
         )}
+        <InviteCandidateForm
+          open={candidateInviteOpen}
+          setOpen={setCandidateInviteOpen}
+          job={selectedJob as IJob}
+        />
 
         <DataTable
           data={data}
