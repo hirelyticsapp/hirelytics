@@ -1,10 +1,116 @@
 'use server';
 import { PaginationState } from '@tanstack/react-table';
+import { Types } from 'mongoose';
 
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase, IMember, IUser } from '@/db';
 import Member from '@/db/schema/member';
 import User from '@/db/schema/user';
+import { auth } from '@/lib/auth/server';
+
+type MemberWithUser = Partial<IUser> & {
+  id: string;
+  memberRole: string[];
+};
+
+export async function fetchMembers(
+  pagination: PaginationState,
+  filters: TableFilters,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sorting: any[]
+): Promise<TableData<MemberWithUser>> {
+  const limit = pagination.pageSize || 10;
+  const skip = (pagination.pageIndex || 0) * limit;
+
+  await connectToDatabase();
+
+  const { organization } = await auth();
+  const organizationId = organization?.id;
+
+  if (!organizationId) {
+    throw new Error('Organization ID not found in session');
+  }
+
+  // Sorting setup
+  const sortStage: Record<string, 1 | -1> = {};
+  if (sorting.length > 0) {
+    const { id, desc } = sorting[0];
+    sortStage[`user.${id}`] = desc ? -1 : 1;
+  }
+
+  // Filtering setup
+  const matchStages: Record<string, unknown>[] = [
+    { organizationId: new Types.ObjectId(organizationId) },
+    { 'user.deleted': { $ne: true } },
+  ];
+
+  if (filters.search) {
+    matchStages.push({
+      $or: [
+        { 'user.name': { $regex: filters.search, $options: 'i' } },
+        { 'user.email': { $regex: filters.search, $options: 'i' } },
+      ],
+    });
+  }
+
+  // MongoDB aggregation pipeline
+  const pipeline = [
+    { $match: { organizationId: new Types.ObjectId(organizationId) } },
+    {
+      $lookup: {
+        from: 'user',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: '$user' },
+    { $match: { $and: matchStages } },
+    {
+      $facet: {
+        totalCount: [{ $count: 'count' }],
+        users: [
+          ...(Object.keys(sortStage).length > 0 ? [{ $sort: sortStage }] : []),
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              id: '$user._id',
+              name: '$user.name',
+              email: '$user.email',
+              role: '$user.role',
+              emailVerified: '$user.emailVerified',
+              createdAt: '$user.createdAt',
+              updatedAt: '$user.updatedAt',
+              memberRole: '$role', // from Member.role
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        totalCount: { $ifNull: [{ $arrayElemAt: ['$totalCount.count', 0] }, 0] },
+        users: 1,
+      },
+    },
+  ];
+
+  const result = await Member.aggregate(pipeline).exec();
+  const { users, totalCount } = result[0] || { users: [], totalCount: 0 };
+
+  return {
+    data: users.map((user: IUser) => {
+      const { _id, ...rest } = user as Partial<IUser>;
+      return {
+        ...rest,
+        id: _id?.toString(),
+      };
+    }) as MemberWithUser[],
+    totalCount,
+    pageCount: Math.ceil(totalCount / limit),
+  };
+}
 
 export async function fetchRecruitersNotInOrganization(
   organizationId: string,

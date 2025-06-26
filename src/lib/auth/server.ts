@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest } from 'next/server';
 
 import { connectToDatabase } from '@/db';
+import Member from '@/db/schema/member';
+import Organization from '@/db/schema/organization';
 import Session, { ISession } from '@/db/schema/session';
 import User, { IUser } from '@/db/schema/user';
 
@@ -142,6 +144,15 @@ export async function cleanupExpiredSessions(): Promise<number> {
 
 export async function auth() {
   const userSession = await getUserFromSession();
+  const members = await Member.findOne({
+    userId: userSession?.user._id,
+  })
+    .select('organizationId')
+    .lean();
+
+  const activeOrganizationId = members?.organizationId || null;
+  const organization = await Organization.findById(activeOrganizationId);
+
   if (!userSession) {
     return {
       user: null,
@@ -150,6 +161,7 @@ export async function auth() {
       isAdmin: false,
       isRecruiter: false,
       isUser: false,
+      organization,
     };
   }
   return {
@@ -158,5 +170,6 @@ export async function auth() {
     isAdmin: userSession.user.role === 'admin',
     isRecruiter: userSession.user.role === 'recruiter',
     isUser: userSession.user.role === 'user',
+    organization,
   };
 }
