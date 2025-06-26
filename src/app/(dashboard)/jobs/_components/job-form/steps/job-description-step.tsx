@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Loader2, Save, Sparkles } from 'lucide-react
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { generateJobDescription } from '@/actions/job';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,20 +59,8 @@ export function JobDescriptionStep({
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/ai/generate-description', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: jobTitle,
-          industry,
-          skills,
-          location,
-        }),
-      });
+      const result = await generateJobDescription(jobTitle, industry, skills, location);
 
-      const result = await response.json();
       if (result.success) {
         form.setValue('description', result.data.description);
         form.setValue('requirements', result.data.requirements);

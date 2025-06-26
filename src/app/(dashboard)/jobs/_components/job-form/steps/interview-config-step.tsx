@@ -45,7 +45,8 @@ export function InterviewConfigStep({
   onPrevious,
 }: InterviewConfigStepProps) {
   const form = useForm<InterviewConfig>({
-    resolver: zodResolver(interviewConfigSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(interviewConfigSchema) as any,
     defaultValues: {
       duration: initialData?.duration || 60,
       instructions: initialData?.instructions || '',
@@ -61,7 +62,6 @@ export function InterviewConfigStep({
 
   const watchScreenMonitoring = form.watch('screenMonitoring');
   const watchCameraMonitoring = form.watch('cameraMonitoring');
-  const watchDifficultyLevel = form.watch('difficultyLevel');
 
   const onSubmit = (data: InterviewConfig) => {
     onComplete(data);
@@ -192,7 +192,7 @@ export function InterviewConfigStep({
                         <div>
                           <FormLabel>Screen Monitoring</FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Monitor candidate's screen during the interview
+                            Monitor candidate&apos;s screen during the interview
                           </p>
                         </div>
                       </div>

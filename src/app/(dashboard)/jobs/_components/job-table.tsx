@@ -1,6 +1,6 @@
 'use client';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Edit, Eye, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, RefreshCw, SettingsIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -151,32 +151,11 @@ export default function JobTable() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={() => {
-                // setSelectedJob(row.original);
-                // setJobDetailsOpen(true);
+                router.push(`/jobs/${_row.original.id}`);
               }}
             >
-              <Eye className="mr-2 h-4 w-4" />
-              View
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                // setSelectedJob(row.original);
-                // setOpen(true);
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                // setSelectedJob(row.original);
-                // setJobDeleteOpen(true);
-              }}
-              className="text-destructive"
-              disabled={false}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              Manage and Edit
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -187,8 +166,7 @@ export default function JobTable() {
   const router = useRouter();
 
   const handleJobCreated = (jobId: string) => {
-    // Redirect to job details page for step-by-step completion
-    router.push(`/jobs/${jobId}/setup`);
+    router.push(`/jobs/${jobId}`);
   };
 
   return (

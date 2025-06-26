@@ -53,7 +53,8 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
   const [loadingSkills, setLoadingSkills] = useState(false);
 
   const form = useForm<BasicJobDetails>({
-    resolver: zodResolver(basicJobDetailsSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(basicJobDetailsSchema) as any,
     defaultValues: {
       title: initialData?.title || '',
       organizationId: initialData?.organizationId || '',
@@ -61,6 +62,7 @@ export function BasicDetailsStep({ initialData, onComplete, onNext }: BasicDetai
       salary: initialData?.salary || '',
       currency: initialData?.currency || 'USD',
       location: initialData?.location || '',
+      expiryDate: initialData?.expiryDate || undefined,
       skills: initialData?.skills || [],
       status: initialData?.status || 'draft',
     },

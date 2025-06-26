@@ -10,6 +10,7 @@ import { industriesData } from '@/lib/constants/industry-data';
 import { calculateTotalQuestions, getDifficultyLevelInfo } from '@/lib/utils/job-utils';
 
 interface JobReviewStepProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   jobData: any;
   onPublish: () => void;
   onPrevious: () => void;
@@ -228,6 +229,7 @@ export function JobReviewStep({
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Question Categories</p>
               <div className="space-y-2">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {jobData.questionsConfig.categoryConfigs?.map((config: any) => {
                   const type = availableQuestionTypes.find((t) => t.value === config.type);
                   return (

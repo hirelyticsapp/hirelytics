@@ -15,6 +15,7 @@ import {
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { generateInterviewQuestions } from '@/actions/job';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,15 +61,14 @@ export function QuestionsConfigStep({
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(
     initialData?.questionTypes || []
   );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [manualQuestions, setManualQuestions] = useState<Record<string, any[]>>(
-    initialData?.questions?.reduce(
-      (acc, q) => {
-        if (!acc[q.type]) acc[q.type] = [];
-        acc[q.type].push(q);
-        return acc;
-      },
-      {} as Record<string, any[]>
-    ) || {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    initialData?.questions?.reduce((acc: Record<string, any[]>, q) => {
+      if (!acc[q.type]) acc[q.type] = [];
+      acc[q.type].push(q);
+      return acc;
+    }, {}) || {}
   );
   const [generatingQuestions, setGeneratingQuestions] = useState<Record<string, boolean>>({});
 
@@ -119,21 +119,14 @@ export function QuestionsConfigStep({
     setGeneratingQuestions((prev) => ({ ...prev, [questionType]: true }));
 
     try {
-      const response = await fetch('/api/ai/generate-questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          questionType,
-          numberOfQuestions,
-          industry,
-          difficultyLevel,
-          jobTitle,
-        }),
-      });
+      const result = await generateInterviewQuestions(
+        industry,
+        jobTitle || '',
+        difficultyLevel || 'normal',
+        [questionType],
+        numberOfQuestions
+      );
 
-      const result = await response.json();
       if (result.success) {
         setManualQuestions((prev) => ({
           ...prev,

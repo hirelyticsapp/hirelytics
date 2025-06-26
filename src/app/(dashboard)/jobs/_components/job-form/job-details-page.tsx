@@ -4,11 +4,25 @@ import { Check, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import {
+  publishJob,
+  updateJobBasicDetails,
+  updateJobDescription,
+  updateJobInterviewConfig,
+  updateJobQuestionsConfig,
+} from '@/actions/job';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formSteps } from '@/lib/constants/job-constants';
-import type { CompleteJob, JobStepCompletion } from '@/lib/schemas/job-schemas';
+import type {
+  BasicJobDetails,
+  CompleteJob,
+  InterviewConfig,
+  JobDescription,
+  JobStepCompletion,
+  QuestionsConfig,
+} from '@/lib/schemas/job-schemas';
 import { canAccessStep, getStepCompletionPercentage } from '@/lib/utils/job-utils';
 
 import { BasicDetailsStep } from './steps/basic-details-step';
@@ -36,7 +50,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
 
   const completionPercentage = getStepCompletionPercentage(completionStatus);
 
-  const handleStepComplete = (stepKey: string, data: any) => {
+  const handleStepComplete = async (stepKey: string, data: Record<string, unknown>) => {
     setCompletionStatus((prev) => ({
       ...prev,
       [stepKey]: true,
@@ -44,8 +58,28 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
 
     setJobData((prev) => ({
       ...prev,
-      [stepKey]: data,
+      ...data,
     }));
+
+    // Save to database based on step
+    try {
+      switch (stepKey) {
+        case 'basicDetails':
+          await updateJobBasicDetails(jobId, data as BasicJobDetails);
+          break;
+        case 'description':
+          await updateJobDescription(jobId, data as JobDescription);
+          break;
+        case 'interviewConfig':
+          await updateJobInterviewConfig(jobId, data as InterviewConfig);
+          break;
+        case 'questionsConfig':
+          await updateJobQuestionsConfig(jobId, data as QuestionsConfig);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error updating ${stepKey}:`, error);
+    }
   };
 
   const handleStepChange = (stepIndex: number) => {
@@ -57,9 +91,12 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
   const handlePublishJob = async () => {
     setIsPublishing(true);
     try {
-      console.log('Publishing job:', jobData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.push('/jobs');
+      const result = await publishJob(jobId);
+      if (result.success) {
+        router.push('/jobs');
+      } else {
+        console.error('Error publishing job:', result.error);
+      }
     } catch (error) {
       console.error('Error publishing job:', error);
     } finally {
@@ -69,15 +106,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
 
   const canPublish = Object.values(completionStatus).every(Boolean);
 
-  const allSteps = [
-    {
-      id: 0,
-      title: 'Basic Details',
-      description: 'Job title, organization, salary, and skills',
-      key: 'basicDetails',
-    },
-    ...formSteps.map((step, index) => ({ ...step, id: index + 1 })),
-  ];
+  const allSteps = [...formSteps.map((step, index) => ({ ...step, id: index + 1 }))];
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -92,9 +121,13 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
       case 1:
         return (
           <JobDescriptionStep
-            initialData={jobData.description}
+            initialData={{
+              description: jobData.description,
+              requirements: jobData.requirements,
+              benefits: jobData.benefits,
+            }}
             jobTitle={jobData.title}
-            industry={jobData.industry}
+            industry={jobData.industry || ''}
             skills={jobData.skills}
             location={jobData.location}
             onComplete={(data) => handleStepComplete('description', data)}
@@ -115,7 +148,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
         return (
           <QuestionsConfigStep
             initialData={jobData.questionsConfig}
-            industry={jobData.industry}
+            industry={jobData.industry || ''}
             jobTitle={jobData.title}
             difficultyLevel={jobData.interviewConfig?.difficultyLevel}
             onComplete={(data) => handleStepComplete('questionsConfig', data)}

@@ -25,7 +25,7 @@ export const basicJobDetailsSchema = z.object({
     required_error: 'Expiry date is required',
   }),
   skills: z.array(z.string()).min(1, 'At least one skill is required'),
-  status: z.enum(['draft', 'published', 'expired', 'deleted']).default('draft'),
+  status: z.enum(['draft', 'published', 'expired', 'deleted']),
 });
 
 // Step 2: Description & Details Schema
@@ -43,24 +43,12 @@ export const interviewConfigSchema = z.object({
     .max(120, 'Interview duration cannot exceed 120 minutes'),
   instructions: z.string().optional(),
   difficultyLevel: z.enum(['easy', 'normal', 'hard', 'expert', 'advanced']),
-  screenMonitoring: z.boolean().default(false),
-  screenMonitoringMode: z.enum(['photo', 'video']).default('photo'),
-  screenMonitoringInterval: z
-    .number()
-    .refine((val) => val === 30 || val === 60, {
-      message: 'Interval must be 30 or 60 seconds',
-    })
-    .default(30)
-    .optional(),
-  cameraMonitoring: z.boolean().default(false),
-  cameraMonitoringMode: z.enum(['photo', 'video']).default('photo'),
-  cameraMonitoringInterval: z
-    .number()
-    .refine((val) => val === 30 || val === 60, {
-      message: 'Interval must be 30 or 60 seconds',
-    })
-    .default(30)
-    .optional(),
+  screenMonitoring: z.boolean(),
+  screenMonitoringMode: z.enum(['photo', 'video']),
+  screenMonitoringInterval: z.number().optional(),
+  cameraMonitoring: z.boolean(),
+  cameraMonitoringMode: z.enum(['photo', 'video']),
+  cameraMonitoringInterval: z.number().optional(),
 });
 
 // Question schemas
