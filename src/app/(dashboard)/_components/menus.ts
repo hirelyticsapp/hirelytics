@@ -67,8 +67,8 @@ const recruiterNavigationMenus = [
         color: 'text-cyan-500',
       },
       {
-        title: 'Applied Jobs',
-        url: '/applied-jobs',
+        title: 'Job Applications',
+        url: '/job-application',
         icon: IconUsers,
         color: 'text-indigo-500',
       },
