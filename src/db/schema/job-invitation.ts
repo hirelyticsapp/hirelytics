@@ -1,29 +1,31 @@
 import { UUID } from 'crypto';
 import type { Document, Model } from 'mongoose';
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, Types } from 'mongoose';
 
 import { IUser } from './user';
 
 export interface IJobInvitation extends Document {
   _doc: IJobInvitation;
-  _id: string;
+  _id: Types.ObjectId; // MongoDB ObjectId
   uuid: UUID; // Unique identifier for the invitation
-  jobId: string; // Reference to the job
+  jobId: Types.ObjectId; // Reference to the job
   candidateEmail: string; // Email of the candidate being invited
-  candidateId?: string | IUser; // Optional reference to the candidate's user ID if they are registered
-  invitedBy: string | IUser; // User ID of the person who sent the invitation
+  candidateId?: Types.ObjectId | IUser; // Optional reference to the candidate's user ID if they are registered
+  invitedBy: Types.ObjectId | IUser; // User ID of the person who sent the invitation
   status: 'pending' | 'accepted' | 'declined'; // Status of the invitation
   createdAt: Date; // Timestamp when the invitation was created
   updatedAt: Date; // Timestamp when the invitation was last updated
+  toJSON(): IJobInvitation; // Method to convert the document to JSON
+  toObject(): IJobInvitation; // Method to convert the document to an object
 }
 
 const JobInvitationSchema = new Schema<IJobInvitation>(
   {
     uuid: { type: String, required: true },
-    jobId: { type: String, required: true },
+    jobId: { type: Schema.Types.ObjectId, required: true, ref: 'Job' }, // Reference to the job document
     candidateEmail: { type: String, required: true },
-    candidateId: { type: String, required: false },
-    invitedBy: { type: String, required: true },
+    candidateId: { type: Schema.Types.ObjectId, required: false, ref: 'User' }, // Optional reference to the candidate's user document
+    invitedBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' }, // Reference to the user who sent the invitation
     status: { type: String, enum: ['pending', 'accepted', 'declined'], required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
