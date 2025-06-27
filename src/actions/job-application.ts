@@ -51,7 +51,12 @@ export const applyJobFromInvitation = async (invitationId: string) => {
   });
 
   if (existingApplication) {
-    throw new Error('You have already applied for this job.');
+    return {
+      success: true,
+      message: 'Application submitted successfully!',
+      applicationId: String(existingApplication._id),
+      uuid: existingApplication.uuid,
+    };
   }
 
   // Use default values from job configuration or set sensible defaults

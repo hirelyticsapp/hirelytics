@@ -81,7 +81,7 @@ export function ProfilePageComponent() {
       setIsUploading(true);
       return await uploadProfileImage(file);
     },
-    onSuccess: (imageKey) => {
+    onSuccess: () => {
       toast.success('Image uploaded successfully');
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       router.refresh();

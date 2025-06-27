@@ -1,16 +1,28 @@
-interface InterviewPageProps {
-  params: Promise<{
-    uuid: string;
-  }>;
-}
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
-export default async function InterviewPage({ params }: InterviewPageProps) {
-  const { uuid } = await params;
+import { InterviewClient } from './_components/interview-client';
 
+export default function InterviewPage() {
+  const job = {
+    title: 'Software Engineer',
+    companyName: 'Tech Innovations Inc.',
+    location: 'Remote',
+    skills: ['JavaScript', 'React', 'Node.js'],
+    interviewDuration: 30, // in minutes
+  };
   return (
-    <div>
-      <h1>Interview Page</h1>
-      <p>Interview UUID: {uuid}</p>
+    <div className="container px-4 py-8 mx-auto relative">
+      <div className="max-w-3xl mx-auto relative z-10">
+        <Card className="mb-6 border-border/60 shadow-lg">
+          <CardHeader>
+            <h1 className="text-3xl font-bold">{job.title} - AI Interview</h1>
+            <p className="text-muted-foreground">Virtual interview for {job.companyName}</p>
+          </CardHeader>
+          <CardContent>
+            <InterviewClient />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
