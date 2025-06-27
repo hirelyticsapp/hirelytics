@@ -120,7 +120,7 @@ export function NavUser() {
                 <IconCreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/notifications')}>
                 <IconNotification />
                 Notifications
               </DropdownMenuItem>

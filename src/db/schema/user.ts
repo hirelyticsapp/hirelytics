@@ -5,7 +5,7 @@ export interface IUser extends Document {
   _doc: IUser;
   _id: string;
   id: string; // Virtual field for cleaner API responses
-  name: string;
+  name?: string;
   role: 'user' | 'recruiter' | 'admin';
   email: string;
   emailVerified: boolean;
@@ -19,7 +19,7 @@ export interface IUser extends Document {
 
 const UserSchema: Schema = new Schema<IUser>(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: false },
     role: { type: String, required: true, default: 'user' },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     emailVerified: { type: Boolean, required: true, default: false },
