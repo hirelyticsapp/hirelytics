@@ -1,13 +1,36 @@
 import {
   IconBasketQuestion,
-  IconBell,
   IconBriefcase,
   IconBuilding,
-  IconCreditCard,
   IconDashboard,
-  IconUser,
   IconUsers,
 } from '@tabler/icons-react';
+
+const settingsNavigationMenus = [
+  {
+    title: 'Settings',
+    items: [
+      {
+        title: 'Profile',
+        url: '/profile',
+        icon: IconUsers,
+        color: 'text-teal-500',
+      },
+      {
+        title: 'Notifications',
+        url: '/notifications',
+        icon: IconUsers,
+        color: 'text-indigo-500',
+      },
+      {
+        title: 'Billing',
+        url: '/billing',
+        icon: IconUsers,
+        color: 'text-orange-500',
+      },
+    ],
+  },
+];
 
 const adminNavigationMenus = [
   {
@@ -51,29 +74,7 @@ const adminNavigationMenus = [
       },
     ],
   },
-  {
-    title: 'Settings',
-    items: [
-      {
-        title: 'Profile',
-        url: '/profile',
-        icon: IconUsers,
-        color: 'text-teal-500',
-      },
-      {
-        title: 'Notifications',
-        url: '/notifications',
-        icon: IconUsers,
-        color: 'text-indigo-500',
-      },
-      {
-        title: 'Billing',
-        url: '/billing',
-        icon: IconUsers,
-        color: 'text-orange-500',
-      },
-    ],
-  },
+  ...settingsNavigationMenus,
 ];
 
 const recruiterNavigationMenus = [
@@ -112,29 +113,7 @@ const recruiterNavigationMenus = [
       },
     ],
   },
-  {
-    title: 'Settings',
-    items: [
-      {
-        title: 'Profile',
-        url: '/profile',
-        icon: IconUser,
-        color: 'text-teal-500',
-      },
-      {
-        title: 'Notifications',
-        url: '/notifications',
-        icon: IconBell,
-        color: 'text-indigo-500',
-      },
-      {
-        title: 'Billing',
-        url: '/billings',
-        icon: IconCreditCard,
-        color: 'text-orange-500',
-      },
-    ],
-  },
+  ...settingsNavigationMenus,
 ];
 
 const candidateNavigationMenus = [
@@ -173,29 +152,7 @@ const candidateNavigationMenus = [
       },
     ],
   },
-  {
-    title: 'Settings',
-    items: [
-      {
-        title: 'Profile',
-        url: '/profile',
-        icon: IconUser,
-        color: 'text-teal-500',
-      },
-      {
-        title: 'Notifications',
-        url: '/notifications',
-        icon: IconBell,
-        color: 'text-indigo-500',
-      },
-      {
-        title: 'Billing',
-        url: '/billings',
-        icon: IconCreditCard,
-        color: 'text-orange-500',
-      },
-    ],
-  },
+  ...settingsNavigationMenus,
 ];
 
 const emptyNavigationMenus = [
