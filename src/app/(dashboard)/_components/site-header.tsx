@@ -42,20 +42,18 @@ export function SiteHeader() {
           {/* Theme Toggle */}
           {mounted ? (
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
               onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
               className="gap-2"
             >
               {resolvedTheme === 'light' ? (
                 <>
                   <IconMoon className="size-4" />
-                  <span className="hidden sm:inline">Dark</span>
                 </>
               ) : (
                 <>
                   <IconSun className="size-4" />
-                  <span className="hidden sm:inline">Light</span>
                 </>
               )}
             </Button>

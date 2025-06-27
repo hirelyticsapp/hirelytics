@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { Camera, Shield, User } from 'lucide-react';
+import { Camera, SaveIcon, Shield, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -222,6 +222,7 @@ export function ProfilePageComponent() {
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={updateProfileMutation.isPending}>
+                  <SaveIcon className="h-4 w-4" />
                   {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
