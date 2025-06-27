@@ -128,13 +128,13 @@ const candidateNavigationMenus = [
       },
       {
         title: 'My Job Invitations',
-        url: '/my-invitations',
+        url: '/my-job-invitations',
         icon: IconBuilding,
         color: 'text-cyan-500',
       },
       {
         title: 'My Saved Jobs',
-        url: '/my-jobs',
+        url: '/my-saved-jobs',
         icon: IconBriefcase,
         color: 'text-orange-500',
       },
@@ -143,12 +143,6 @@ const candidateNavigationMenus = [
         url: '/my-applications',
         icon: IconUsers,
         color: 'text-indigo-500',
-      },
-      {
-        title: 'My Profile',
-        url: '/my-profile',
-        icon: IconUsers,
-        color: 'text-teal-500',
       },
     ],
   },
