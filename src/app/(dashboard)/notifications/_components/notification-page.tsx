@@ -358,322 +358,314 @@ export function NotificationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Notification Settings</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your notification preferences and view all notification types
-          </p>
-        </div>
+    <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">Notification Settings</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage your notification preferences and view all notification types
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Settings Column */}
-          <div className="space-y-6">
-            {/* Email Notifications */}
-            <Card className="border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Mail className="h-5 w-5" />
-                  Email Notifications
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Choose what email notifications you&apos;d like to receive
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-medium text-gray-900">
-                      Marketing & Promotions
-                    </Label>
-                    <p className="text-sm text-gray-500">
-                      Receive emails about new features, tips, and special offers
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.email.marketing}
-                    onCheckedChange={(checked) => updateEmailSetting('marketing', checked)}
-                  />
-                </div>
-
-                <Separator className="bg-gray-200" />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-red-500" />
-                    <div>
-                      <Label className="text-base font-medium text-gray-900">Security Alerts</Label>
-                      <p className="text-sm text-gray-500">
-                        Important security notifications and login alerts
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.email.security}
-                    onCheckedChange={(checked) => updateEmailSetting('security', checked)}
-                  />
-                </div>
-
-                <Separator className="bg-gray-200" />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5 flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-green-500" />
-                    <div>
-                      <Label className="text-base font-medium text-gray-900">
-                        Billing & Payments
-                      </Label>
-                      <p className="text-sm text-gray-500">
-                        Invoices, payment confirmations, and billing updates
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.email.billing}
-                    onCheckedChange={(checked) => updateEmailSetting('billing', checked)}
-                  />
-                </div>
-
-                <Separator className="bg-gray-200" />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-medium text-gray-900">Product Updates</Label>
-                    <p className="text-sm text-gray-500">
-                      Updates about new features and product changes
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.email.product}
-                    onCheckedChange={(checked) => updateEmailSetting('product', checked)}
-                  />
-                </div>
-
-                <Separator className="bg-gray-200" />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-medium text-gray-900">
-                      Social & Community
-                    </Label>
-                    <p className="text-sm text-gray-500">
-                      Mentions, follows, and community interactions
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.email.social}
-                    onCheckedChange={(checked) => updateEmailSetting('social', checked)}
-                  />
-                </div>
-
-                <Separator className="bg-gray-200" />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-medium text-gray-900">System Updates</Label>
-                    <p className="text-sm text-gray-500">
-                      System maintenance and technical notifications
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.email.system}
-                    onCheckedChange={(checked) => updateEmailSetting('system', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Push Notifications */}
-            <Card className="border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Bell className="h-5 w-5" />
-                  Push Notifications
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Manage your browser and mobile push notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-medium text-gray-900">
-                      Enable Push Notifications
-                    </Label>
-                    <p className="text-sm text-gray-500">Allow us to send you push notifications</p>
-                  </div>
-                  <Switch
-                    checked={settings.push.enabled}
-                    onCheckedChange={(checked) => updatePushSetting('enabled', checked)}
-                  />
-                </div>
-
-                {settings.push.enabled && (
-                  <>
-                    <Separator className="bg-gray-200" />
-
-                    <div className="space-y-4">
-                      {[
-                        {
-                          key: 'security',
-                          label: 'Security Alerts',
-                          desc: 'Critical security notifications',
-                          icon: Shield,
-                          color: 'text-red-500',
-                        },
-                        {
-                          key: 'billing',
-                          label: 'Billing Notifications',
-                          desc: 'Payment reminders and billing updates',
-                          icon: CreditCard,
-                          color: 'text-green-500',
-                        },
-                        {
-                          key: 'social',
-                          label: 'Social Updates',
-                          desc: 'Mentions, follows, and interactions',
-                          icon: Users,
-                          color: 'text-purple-500',
-                        },
-                        {
-                          key: 'system',
-                          label: 'System Notifications',
-                          desc: 'System updates and maintenance',
-                          icon: Settings,
-                          color: 'text-gray-500',
-                        },
-                        {
-                          key: 'marketing',
-                          label: 'Marketing Messages',
-                          desc: 'Promotional content and announcements',
-                          icon: Gift,
-                          color: 'text-orange-500',
-                        },
-                      ].map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <div key={item.key} className="flex items-center justify-between">
-                            <div className="space-y-0.5 flex items-center gap-2">
-                              <Icon className={`h-4 w-4 ${item.color}`} />
-                              <div>
-                                <Label className="text-base font-medium text-gray-900">
-                                  {item.label}
-                                </Label>
-                                <p className="text-sm text-gray-500">{item.desc}</p>
-                              </div>
-                            </div>
-                            <Switch
-                              checked={
-                                settings.push[item.key as keyof typeof settings.push] as boolean
-                              }
-                              onCheckedChange={(checked) =>
-                                updatePushSetting(item.key as keyof typeof settings.push, checked)
-                              }
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Notification Frequency */}
-            <Card className="border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <MessageSquare className="h-5 w-5" />
-                  Notification Frequency
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Control how often you receive digest emails
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="frequency" className="text-gray-700">
-                    Email Digest Frequency
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Settings Column */}
+        <div className="space-y-6">
+          {/* Email Notifications */}
+          <Card className="border shadow-sm bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Mail className="h-5 w-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Choose what email notifications you&apos;d like to receive
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium text-gray-900">
+                    Marketing & Promotions
                   </Label>
-                  <Select
-                    value={settings.frequency}
-                    onValueChange={(value) =>
-                      setSettings((prev) => ({ ...prev, frequency: value }))
-                    }
-                  >
-                    <SelectTrigger className="w-full border-gray-200 focus:border-gray-400">
-                      <SelectValue placeholder="Select frequency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="realtime">Real-time</SelectItem>
-                      <SelectItem value="daily">Daily digest</SelectItem>
-                      <SelectItem value="weekly">Weekly digest</SelectItem>
-                      <SelectItem value="never">Never</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <p className="text-sm text-gray-500">
-                    Choose how often you want to receive summary emails of your notifications
+                    Receive emails about new features, tips, and special offers
                   </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Switch
+                  checked={settings.email.marketing}
+                  onCheckedChange={(checked) => updateEmailSetting('marketing', checked)}
+                />
+              </div>
 
-          {/* Notification Types Column */}
-          <div className="space-y-6">
-            <Card className="border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Bell className="h-5 w-5" />
-                  All Notification Types
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Complete list of notifications you may receive
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {notificationTypes.map((category) => {
-                  const Icon = category.icon;
-                  return (
-                    <div key={category.category} className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg bg-gradient-to-r ${category.color}`}>
-                          <Icon className="h-4 w-4 text-foreground" />
-                        </div>
-                        <h3 className="font-semibold text-foreground">{category.category}</h3>
-                      </div>
-                      <div className="space-y-2 ml-6">
-                        {category.notifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className="flex items-start justify-between p-3 rounded-lg bg-muted border"
-                          >
-                            <div className="flex-1">
-                              <p className="font-medium text-foreground text-sm">
-                                {notification.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {notification.description}
-                              </p>
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-red-500" />
+                  <div>
+                    <Label className="text-base font-medium text-gray-900">Security Alerts</Label>
+                    <p className="text-sm text-gray-500">
+                      Important security notifications and login alerts
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.email.security}
+                  onCheckedChange={(checked) => updateEmailSetting('security', checked)}
+                />
+              </div>
+
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-green-500" />
+                  <div>
+                    <Label className="text-base font-medium text-gray-900">
+                      Billing & Payments
+                    </Label>
+                    <p className="text-sm text-gray-500">
+                      Invoices, payment confirmations, and billing updates
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.email.billing}
+                  onCheckedChange={(checked) => updateEmailSetting('billing', checked)}
+                />
+              </div>
+
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium text-gray-900">Product Updates</Label>
+                  <p className="text-sm text-gray-500">
+                    Updates about new features and product changes
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.email.product}
+                  onCheckedChange={(checked) => updateEmailSetting('product', checked)}
+                />
+              </div>
+
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium text-gray-900">Social & Community</Label>
+                  <p className="text-sm text-gray-500">
+                    Mentions, follows, and community interactions
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.email.social}
+                  onCheckedChange={(checked) => updateEmailSetting('social', checked)}
+                />
+              </div>
+
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium text-gray-900">System Updates</Label>
+                  <p className="text-sm text-gray-500">
+                    System maintenance and technical notifications
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.email.system}
+                  onCheckedChange={(checked) => updateEmailSetting('system', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Push Notifications */}
+          <Card className="border shadow-sm bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Bell className="h-5 w-5" />
+                Push Notifications
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Manage your browser and mobile push notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium text-gray-900">
+                    Enable Push Notifications
+                  </Label>
+                  <p className="text-sm text-gray-500">Allow us to send you push notifications</p>
+                </div>
+                <Switch
+                  checked={settings.push.enabled}
+                  onCheckedChange={(checked) => updatePushSetting('enabled', checked)}
+                />
+              </div>
+
+              {settings.push.enabled && (
+                <>
+                  <Separator className="bg-gray-200" />
+
+                  <div className="space-y-4">
+                    {[
+                      {
+                        key: 'security',
+                        label: 'Security Alerts',
+                        desc: 'Critical security notifications',
+                        icon: Shield,
+                        color: 'text-red-500',
+                      },
+                      {
+                        key: 'billing',
+                        label: 'Billing Notifications',
+                        desc: 'Payment reminders and billing updates',
+                        icon: CreditCard,
+                        color: 'text-green-500',
+                      },
+                      {
+                        key: 'social',
+                        label: 'Social Updates',
+                        desc: 'Mentions, follows, and interactions',
+                        icon: Users,
+                        color: 'text-purple-500',
+                      },
+                      {
+                        key: 'system',
+                        label: 'System Notifications',
+                        desc: 'System updates and maintenance',
+                        icon: Settings,
+                        color: 'text-gray-500',
+                      },
+                      {
+                        key: 'marketing',
+                        label: 'Marketing Messages',
+                        desc: 'Promotional content and announcements',
+                        icon: Gift,
+                        color: 'text-orange-500',
+                      },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div key={item.key} className="flex items-center justify-between">
+                          <div className="space-y-0.5 flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${item.color}`} />
+                            <div>
+                              <Label className="text-base font-medium text-gray-900">
+                                {item.label}
+                              </Label>
+                              <p className="text-sm text-gray-500">{item.desc}</p>
                             </div>
-                            <Badge
-                              className={`ml-2 text-xs ${getPriorityColor(notification.priority)}`}
-                            >
-                              {notification.priority}
-                            </Badge>
                           </div>
-                        ))}
+                          <Switch
+                            checked={
+                              settings.push[item.key as keyof typeof settings.push] as boolean
+                            }
+                            onCheckedChange={(checked) =>
+                              updatePushSetting(item.key as keyof typeof settings.push, checked)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Notification Frequency */}
+          <Card className="border shadow-sm bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <MessageSquare className="h-5 w-5" />
+                Notification Frequency
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Control how often you receive digest emails
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="frequency" className="text-gray-700">
+                  Email Digest Frequency
+                </Label>
+                <Select
+                  value={settings.frequency}
+                  onValueChange={(value) => setSettings((prev) => ({ ...prev, frequency: value }))}
+                >
+                  <SelectTrigger className="w-full border-gray-200 focus:border-gray-400">
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="realtime">Real-time</SelectItem>
+                    <SelectItem value="daily">Daily digest</SelectItem>
+                    <SelectItem value="weekly">Weekly digest</SelectItem>
+                    <SelectItem value="never">Never</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-500">
+                  Choose how often you want to receive summary emails of your notifications
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Notification Types Column */}
+        <div className="space-y-6">
+          <Card className="border shadow-sm bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Bell className="h-5 w-5" />
+                All Notification Types
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Complete list of notifications you may receive
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {notificationTypes.map((category) => {
+                const Icon = category.icon;
+                return (
+                  <div key={category.category} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-2 rounded-lg bg-gradient-to-r ${category.color}`}>
+                        <Icon className="h-4 w-4 text-foreground" />
                       </div>
-                      {category !== notificationTypes[notificationTypes.length - 1] && (
-                        <Separator />
-                      )}
+                      <h3 className="font-semibold text-foreground">{category.category}</h3>
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
+                    <div className="space-y-2 ml-6">
+                      {category.notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="flex items-start justify-between p-3 rounded-lg bg-muted border"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground text-sm">
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {notification.description}
+                            </p>
+                          </div>
+                          <Badge
+                            className={`ml-2 text-xs ${getPriorityColor(notification.priority)}`}
+                          >
+                            {notification.priority}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                    {category !== notificationTypes[notificationTypes.length - 1] && <Separator />}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
