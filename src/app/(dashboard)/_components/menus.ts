@@ -24,7 +24,7 @@ const settingsNavigationMenus = [
       },
       {
         title: 'Billing',
-        url: '/billing',
+        url: '/billings',
         icon: IconUsers,
         color: 'text-orange-500',
       },

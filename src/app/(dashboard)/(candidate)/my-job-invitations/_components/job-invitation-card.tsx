@@ -1,4 +1,3 @@
-import { IconArrowBadgeRight } from '@tabler/icons-react';
 import {
   Briefcase,
   Building,
@@ -19,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import AcceptInvitationButton from './accept-invitaion-button';
+import ApplyJobInvitationButton from './apply-job-button';
 import DeclineInvitationButton from './decline-invitaion-button';
 import { JobDetailsModal } from './job-details-modal';
 
@@ -155,10 +155,7 @@ export default function JobInvitationCard({ jobInvitation }: { jobInvitation: Jo
             )}
 
             {jobInvitation?.status === 'accepted' && (
-              <Button size="sm" className="flex-1">
-                <IconArrowBadgeRight className="h-3 w-3 mr-1" />
-                Apply
-              </Button>
+              <ApplyJobInvitationButton invitationId={jobInvitation.id} />
             )}
 
             <Button

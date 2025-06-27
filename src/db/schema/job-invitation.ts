@@ -9,7 +9,6 @@ export interface IJobInvitation extends Document {
   _id: Types.ObjectId; // MongoDB ObjectId
   uuid: UUID; // Unique identifier for the invitation
   jobId: Types.ObjectId; // Reference to the job
-  candidateEmail: string; // Email of the candidate being invited
   candidateId?: Types.ObjectId | IUser; // Optional reference to the candidate's user ID if they are registered
   invitedBy: Types.ObjectId | IUser; // User ID of the person who sent the invitation
   status: 'pending' | 'accepted' | 'declined'; // Status of the invitation
@@ -23,7 +22,6 @@ const JobInvitationSchema = new Schema<IJobInvitation>(
   {
     uuid: { type: String, required: true },
     jobId: { type: Schema.Types.ObjectId, required: true, ref: 'Job' }, // Reference to the job document
-    candidateEmail: { type: String, required: true },
     candidateId: { type: Schema.Types.ObjectId, required: false, ref: 'User' }, // Optional reference to the candidate's user document
     invitedBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' }, // Reference to the user who sent the invitation
     status: { type: String, enum: ['pending', 'accepted', 'declined'], required: true },

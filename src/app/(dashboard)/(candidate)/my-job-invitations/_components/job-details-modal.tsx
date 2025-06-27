@@ -1,6 +1,5 @@
 'use client';
 
-import { IconArrowBadgeRight } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Award,
@@ -18,7 +17,6 @@ import { JobInvitation } from '@/@types/job';
 import { getJobDetails } from '@/actions/job-invite';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +27,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 import AcceptInvitationButton from './accept-invitaion-button';
+import ApplyJobInvitationButton from './apply-job-button';
 import DeclineInvitationButton from './decline-invitaion-button';
 
 interface JobDetailsModalProps {
@@ -332,10 +331,7 @@ export function JobDetailsModal({
             )}
 
             {jobInvitationDetails?.status === 'accepted' && (
-              <Button size="sm" className="flex-1">
-                <IconArrowBadgeRight className="h-3 w-3 mr-1" />
-                Apply
-              </Button>
+              <ApplyJobInvitationButton invitationId={jobInvitationDetails.id} />
             )}
           </div>
         </DialogFooter>
