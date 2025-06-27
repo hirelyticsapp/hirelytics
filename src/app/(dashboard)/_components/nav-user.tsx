@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 
+import S3SignedImage from '@/components/s3-signed-image';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -56,13 +57,22 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-slate-100 dark:hover:bg-slate-800/70 py-3"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                {/* <AvatarImage src={user?.avatar} alt={user?.name} /> */}
-                <AvatarFallback className="rounded-lg bg-primary/10">
-                  {user?.name
-                    ?.split(' ')
-                    ?.map((n) => n[0])
-                    ?.join('')}
-                </AvatarFallback>
+                {user?.image ? (
+                  <S3SignedImage
+                    src={user.image}
+                    alt={user.name || 'User'}
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
+                ) : (
+                  <AvatarFallback className="rounded-lg bg-primary/10">
+                    {user?.name
+                      ?.split(' ')
+                      ?.map((n) => n[0])
+                      ?.join('')}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user?.name}</span>
@@ -87,13 +97,22 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  {/* <AvatarImage src={user?.avatar} alt={user?.name} /> */}
-                  <AvatarFallback className="rounded-lg bg-primary/10">
-                    {user?.name
-                      ?.split(' ')
-                      ?.map((n) => n[0])
-                      ?.join('')}
-                  </AvatarFallback>
+                  {user?.image ? (
+                    <S3SignedImage
+                      src={user.image}
+                      alt={user.name || 'User'}
+                      width={32}
+                      height={32}
+                      className="rounded-lg"
+                    />
+                  ) : (
+                    <AvatarFallback className="rounded-lg bg-primary/10">
+                      {user?.name
+                        ?.split(' ')
+                        ?.map((n) => n[0])
+                        ?.join('')}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
