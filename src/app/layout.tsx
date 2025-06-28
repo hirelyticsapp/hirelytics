@@ -2,6 +2,7 @@ import './globals.css';
 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import Script from 'next/script';
 import { getLocale } from 'next-intl/server';
 import NextTopLoader from 'nextjs-toploader';
 
@@ -33,6 +34,7 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <RootProvider>
+          <Script crossOrigin="anonymous" src="//unpkg.com/react-scan/dist/auto.global.js" />
           <NextTopLoader color="hsl(var(--primary))" />
           {children}
           <Toaster richColors />

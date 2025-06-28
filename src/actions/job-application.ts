@@ -4,6 +4,7 @@ import { PaginationState } from '@tanstack/react-table';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 
+import { JobApplicationTableData } from '@/@types/job';
 import { TableData, TableFilters } from '@/@types/table';
 import { connectToDatabase } from '@/db';
 import Job from '@/db/schema/job';
@@ -173,28 +174,6 @@ export const updateJobApplicationStatus = async (
     application,
   };
 };
-
-interface JobApplicationTableData {
-  id: string;
-  uuid: string;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
-  preferredLanguage: string;
-  candidate: {
-    email: string;
-    name: string;
-  };
-  jobDetails: {
-    title: string;
-    description: string;
-    skills: string[];
-    benefits?: string;
-    requirements?: string;
-  };
-  jobId: string | null;
-  userId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export async function fetchJobApplications(
   pagination: PaginationState,

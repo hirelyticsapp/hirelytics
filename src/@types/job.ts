@@ -23,3 +23,25 @@ export interface JobInvitation {
     avatar?: string;
   };
 }
+
+export interface JobApplicationTableData {
+  id: string;
+  uuid: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  preferredLanguage: string;
+  candidate: {
+    email: string;
+    name: string;
+  };
+  jobDetails: {
+    title: string;
+    description: string;
+    skills: string[];
+    benefits?: string;
+    requirements?: string;
+  };
+  jobId: string | null;
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
