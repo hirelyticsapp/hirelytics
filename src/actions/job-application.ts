@@ -1,5 +1,6 @@
 'use server';
 
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { PaginationState } from '@tanstack/react-table';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
@@ -11,7 +12,9 @@ import Job from '@/db/schema/job';
 import JobApplication from '@/db/schema/job-application';
 import JobInvitation from '@/db/schema/job-invitation';
 import User from '@/db/schema/user';
+import { env } from '@/env';
 import { auth } from '@/lib/auth/server';
+import { createS3Client } from '@/lib/s3-client';
 
 export const applyJobFromInvitation = async (invitationId: string, preferredLanguage?: string) => {
   if (!invitationId) {
@@ -424,4 +427,192 @@ export async function getJobApplicationById(applicationId: string) {
     createdAt: new Date(application.createdAt).toISOString(),
     updatedAt: new Date(application.updatedAt).toISOString(),
   };
+}
+
+export async function uploadMonitoringImage(
+  applicationId: string,
+  imageType: 'camera' | 'screen',
+  imageData: string // Base64 encoded image data
+) {
+  await connectToDatabase();
+
+  const { user } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to upload monitoring images.');
+  }
+
+  // Verify the application exists and belongs to the user
+  const application = await JobApplication.findOne({
+    _id: applicationId,
+    userId: new mongoose.Types.ObjectId(user.id),
+  });
+
+  if (!application) {
+    throw new Error(
+      'Application not found or you do not have permission to upload images for this application.'
+    );
+  }
+
+  try {
+    // Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+    const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Generate unique S3 key
+    const timestamp = new Date().toISOString();
+    const uniqueId = crypto.randomUUID();
+    const s3Key = `monitoring/${applicationId}/${imageType}/${timestamp}-${uniqueId}.jpg`;
+
+    // Upload to S3
+    const s3Client = createS3Client();
+    const uploadCommand = new PutObjectCommand({
+      Bucket: env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: buffer,
+      ContentType: 'image/jpeg',
+      ContentEncoding: 'base64',
+    });
+
+    await s3Client.send(uploadCommand);
+
+    // Update the application with the new monitoring image
+    const updateField = `monitoringImages.${imageType}`;
+    const imageEntry = {
+      s3Key,
+      timestamp: new Date(),
+    };
+
+    await JobApplication.findByIdAndUpdate(
+      applicationId,
+      {
+        $push: {
+          [updateField]: imageEntry,
+        },
+      },
+      { new: true }
+    );
+
+    return {
+      success: true,
+      message: `${imageType} monitoring image uploaded successfully!`,
+      s3Key,
+      timestamp: imageEntry.timestamp.toISOString(),
+    };
+  } catch (error) {
+    console.error(`Error uploading ${imageType} monitoring image:`, error);
+    throw new Error(`Failed to upload ${imageType} monitoring image. Please try again.`);
+  }
+}
+
+export async function uploadCameraImage(applicationId: string, imageData: string) {
+  return uploadMonitoringImage(applicationId, 'camera', imageData);
+}
+
+export async function uploadScreenImage(applicationId: string, imageData: string) {
+  return uploadMonitoringImage(applicationId, 'screen', imageData);
+}
+
+export async function getMonitoringImages(applicationId: string) {
+  await connectToDatabase();
+
+  const { user, isRecruiter, isAdmin } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to view monitoring images.');
+  }
+
+  const application = await JobApplication.findById(applicationId)
+    .populate('jobId', 'organizationId')
+    .lean()
+    .exec();
+
+  if (!application) {
+    throw new Error('Application not found.');
+  }
+
+  // Role-based access control
+  if (!isAdmin && !isRecruiter) {
+    // Candidates can only view their own applications
+    if (application.userId.toString() !== user.id) {
+      throw new Error('You can only view monitoring images for your own applications.');
+    }
+  } else if (isRecruiter && !isAdmin) {
+    // Recruiters can only view images for applications in their organization
+    const job = application.jobId as unknown as { organizationId?: { toString(): string } };
+    const userWithOrg = user as unknown as { organizationId?: string };
+    if (job?.organizationId?.toString() !== userWithOrg.organizationId) {
+      throw new Error('You can only view monitoring images for applications in your organization.');
+    }
+  }
+
+  return {
+    camera: application.monitoringImages?.camera || [],
+    screen: application.monitoringImages?.screen || [],
+  };
+}
+
+export async function deleteMonitoringImage(
+  applicationId: string,
+  imageType: 'camera' | 'screen',
+  s3Key: string
+) {
+  await connectToDatabase();
+
+  const { user, isRecruiter, isAdmin } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to delete monitoring images.');
+  }
+
+  const application = await JobApplication.findById(applicationId)
+    .populate('jobId', 'organizationId')
+    .exec();
+
+  if (!application) {
+    throw new Error('Application not found.');
+  }
+
+  // Role-based access control - only allow deletion by recruiters/admins
+  if (!isAdmin && !isRecruiter) {
+    throw new Error('Only recruiters and admins can delete monitoring images.');
+  } else if (isRecruiter && !isAdmin) {
+    // Recruiters can only delete images for applications in their organization
+    const job = application.jobId as unknown as { organizationId?: { toString(): string } };
+    const userWithOrg = user as unknown as { organizationId?: string };
+    if (job?.organizationId?.toString() !== userWithOrg.organizationId) {
+      throw new Error(
+        'You can only delete monitoring images for applications in your organization.'
+      );
+    }
+  }
+
+  try {
+    // Remove from S3
+    const s3Client = createS3Client();
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+    });
+
+    await s3Client.send(deleteCommand);
+
+    // Remove from database
+    const updateField = `monitoringImages.${imageType}`;
+    await JobApplication.findByIdAndUpdate(
+      applicationId,
+      {
+        $pull: {
+          [updateField]: { s3Key },
+        },
+      },
+      { new: true }
+    );
+
+    return {
+      success: true,
+      message: `${imageType} monitoring image deleted successfully!`,
+    };
+  } catch (error) {
+    console.error(`Error deleting ${imageType} monitoring image:`, error);
+    throw new Error(`Failed to delete ${imageType} monitoring image. Please try again.`);
+  }
 }

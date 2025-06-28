@@ -17,3 +17,22 @@ export const signedUrl = async (key: string, expiresInSeconds: number) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return await getSignedUrl(s3 as unknown as any, command, { expiresIn: expiresInSeconds });
 };
+
+export const getMonitoringImageSignedUrl = async (s3Key: string) => {
+  // Generate signed URL with 1 hour expiration for monitoring images
+  return await signedUrl(s3Key, 3600);
+};
+
+export const getMonitoringImageSignedUrls = async (s3Keys: string[]) => {
+  // Generate signed URLs for multiple monitoring images
+  const urlPromises = s3Keys.map((key) => signedUrl(key, 3600));
+  const urls = await Promise.all(urlPromises);
+
+  return s3Keys.reduce(
+    (acc, key, index) => {
+      acc[key] = urls[index];
+      return acc;
+    },
+    {} as Record<string, string>
+  );
+};
