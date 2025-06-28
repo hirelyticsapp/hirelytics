@@ -4,9 +4,36 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+interface ApplicationData {
+  candidate: {
+    name: string;
+  };
+  jobDetails: {
+    title: string;
+    description: string;
+    skills: string[];
+  };
+  sessionInstruction: {
+    screenMonitoring: boolean;
+    screenMonitoringMode: 'photo' | 'video';
+    screenMonitoringInterval?: 30 | 60;
+    cameraMonitoring: boolean;
+    cameraMonitoringMode: 'photo' | 'video';
+    cameraMonitoringInterval?: 30 | 60;
+    duration: number; // mandatory field
+  };
+  instructionsForAi?: {
+    instruction?: string;
+    totalQuestions: number;
+    difficultyLevel: 'easy' | 'normal' | 'hard' | 'expert' | 'advanced';
+    questionMode?: 'manual' | 'ai-mode';
+  };
+}
+
 interface InterviewStartScreenProps {
   onStartInterview: () => void;
   onCancel: () => void;
+  applicationData: ApplicationData;
 }
 
 /**
@@ -16,132 +43,183 @@ interface InterviewStartScreenProps {
 const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
   onStartInterview,
   onCancel,
+  applicationData,
 }) => {
+  const totalQuestions = applicationData.instructionsForAi?.totalQuestions || 10;
+  // Use duration from session instruction (mandatory field)
+  const estimatedDuration = applicationData.sessionInstruction.duration;
+  const difficultyLevel = applicationData.instructionsForAi?.difficultyLevel || 'normal';
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 bg-background">
-      <Card className="max-w-4xl w-full mx-2 p-6 bg-card text-card-foreground border border-border">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Video className="w-8 h-8 text-primary-foreground" />
+    <div className="h-screen flex items-center justify-center p-4 bg-background overflow-hidden">
+      <Card className="max-w-5xl w-full h-fit max-h-[95vh] overflow-y-auto p-6 bg-card text-card-foreground border border-border">
+        <div className="text-center mb-4">
+          <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
+            <Video className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">AI Video Interview</h1>
-          <p className="text-base text-muted-foreground">
-            Professional interview session with AI assistant
-          </p>
+          <h1 className="text-xl font-bold text-foreground mb-1">
+            {applicationData.jobDetails.title} - AI Interview
+          </h1>
+          <p className="text-sm text-muted-foreground">Welcome {applicationData.candidate.name}</p>
         </div>
 
         {/* Session Info */}
-        <div className="grid md:grid-cols-3 gap-3 mb-6">
-          <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
-            <Users size={18} className="text-primary" />
+        <div className="grid md:grid-cols-3 gap-2 mb-4">
+          <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground bg-muted rounded-lg p-2">
+            <Users size={16} className="text-primary" />
             <span>You + AI Interviewer</span>
           </div>
-          <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
-            <Clock size={18} className="text-primary" />
-            <span>20 minute session</span>
+          <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground bg-muted rounded-lg p-2">
+            <Clock size={16} className="text-primary" />
+            <span>{estimatedDuration} minute session</span>
           </div>
-          <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
-            <CheckCircle size={18} className="text-green-500" />
-            <span>Auto-recorded</span>
+          <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground bg-muted rounded-lg p-2">
+            <CheckCircle size={16} className="text-green-500" />
+            <span>
+              {totalQuestions} Questions •{' '}
+              {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
+            </span>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6 mb-6">
-          {/* Interview Features */}
+        <div className="grid lg:grid-cols-2 gap-4 mb-4">
+          {/* Interview Session Details */}
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-3">Interview Features</h2>
-            <div className="grid gap-3">
-              <div className="flex items-start space-x-3 p-3 bg-accent rounded-lg">
-                <Video className="w-6 h-6 text-primary mt-1" />
-                <div>
-                  <h3 className="font-medium text-foreground">Video Recording</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Combined audio & video recording for review
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3 p-3 bg-accent rounded-lg">
-                <Mic className="w-6 h-6 text-green-600 mt-1" />
-                <div>
-                  <h3 className="font-medium text-foreground">Live Transcription</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Real-time speech-to-text conversion
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3 p-3 bg-accent rounded-lg">
-                <Monitor className="w-6 h-6 text-purple-600 mt-1" />
-                <div>
-                  <h3 className="font-medium text-foreground">Screen Sharing</h3>
-                  <p className="text-sm text-muted-foreground">Share presentations or portfolios</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3 p-3 bg-accent rounded-lg">
-                <Camera className="w-6 h-6 text-orange-600 mt-1" />
-                <div>
-                  <h3 className="font-medium text-foreground">Snapshots</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Capture important moments during interview
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pre-Interview Checklist */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-3">Before You Start</h2>
+            <h2 className="text-base font-semibold text-foreground mb-2">Session Information</h2>
             <div className="space-y-2">
-              <div className="flex items-center space-x-3 p-2 bg-muted rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-foreground">Ensure stable internet connection</span>
+              {/* Duration and Questions */}
+              <div className="p-3 bg-muted rounded-lg">
+                <h3 className="text-sm font-medium text-foreground mb-2">Interview Details</h3>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Duration: {estimatedDuration} minutes</p>
+                  <p>• Total questions: {totalQuestions}</p>
+                  <p>
+                    • Difficulty:{' '}
+                    {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
+                  </p>
+                  {applicationData.instructionsForAi?.questionMode && (
+                    <p>
+                      • Question mode:{' '}
+                      {applicationData.instructionsForAi.questionMode === 'ai-mode'
+                        ? 'AI Generated'
+                        : 'Manual'}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-3 p-2 bg-muted rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-foreground">Test your camera and microphone</span>
+            </div>
+          </div>
+
+          {/* Active Features */}
+          <div>
+            <h2 className="text-base font-semibold text-foreground mb-2">Active Features</h2>
+            <div className="grid gap-2">
+              {/* Core Features - Always enabled */}
+              <div className="flex items-start space-x-2 p-2 bg-accent rounded-lg">
+                <Video className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Video Recording</h3>
+                  <p className="text-xs text-muted-foreground">Audio & video recording active</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-3 p-2 bg-muted rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-foreground">Find a quiet, well-lit environment</span>
+
+              <div className="flex items-start space-x-2 p-2 bg-accent rounded-lg">
+                <Mic className="w-5 h-5 text-green-600 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Live Transcription</h3>
+                  <p className="text-xs text-muted-foreground">Real-time speech-to-text</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-3 p-2 bg-muted rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-foreground">
-                  Prepare your resume and portfolio (optional)
-                </span>
-              </div>
+
+              {/* Optional Features - Only show if enabled */}
+              {applicationData.sessionInstruction.screenMonitoring === true && (
+                <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Monitor className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-800">Screen Monitoring</h3>
+                    <p className="text-xs text-yellow-700">
+                      {applicationData.sessionInstruction.screenMonitoringMode === 'video'
+                        ? 'Continuous screen recording'
+                        : `Screen snapshots every ${applicationData.sessionInstruction.screenMonitoringInterval || 30}s`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {applicationData.sessionInstruction.cameraMonitoring === true && (
+                <div className="flex items-start space-x-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                  <Camera className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-orange-800">Camera Monitoring</h3>
+                    <p className="text-xs text-orange-700">
+                      {applicationData.sessionInstruction.cameraMonitoringMode === 'video'
+                        ? 'Continuous camera recording'
+                        : `Camera snapshots every ${applicationData.sessionInstruction.cameraMonitoringInterval || 30}s`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Show a message if no monitoring features are enabled */}
+              {!applicationData.sessionInstruction.screenMonitoring &&
+                !applicationData.sessionInstruction.cameraMonitoring && (
+                  <div className="flex items-start space-x-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium text-blue-800">Privacy Mode</h3>
+                      <p className="text-xs text-blue-700">No additional monitoring enabled</p>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
 
-        {/* Start Button */}
-        <div className="flex space-x-4 justify-center pt-4 w-full">
-          <Button
-            onClick={onCancel}
-            variant="outline"
-            className="w-full max-w-xs flex items-center justify-center"
-          >
-            <Camera size={20} className="mr-2" />
+        {/* Ready to Start Section */}
+        <div className="text-center mb-4">
+          <h3 className="text-base font-semibold text-foreground mb-2">Ready to Begin?</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-2xl mx-auto">
+            <div className="flex items-center space-x-1 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="w-3 h-3 text-green-600" />
+              <span className="text-green-800 text-xs">Camera Ready</span>
+            </div>
+            <div className="flex items-center space-x-1 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="w-3 h-3 text-green-600" />
+              <span className="text-green-800 text-xs">Audio Ready</span>
+            </div>
+            <div className="flex items-center space-x-1 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="w-3 h-3 text-green-600" />
+              <span className="text-green-800 text-xs">Internet Stable</span>
+            </div>
+            <div className="flex items-center space-x-1 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="w-3 h-3 text-green-600" />
+              <span className="text-green-800 text-xs">Environment Quiet</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Start Buttons */}
+        <div className="flex space-x-3 justify-center mb-4">
+          <Button onClick={onCancel} variant="outline" className="min-w-28">
             Cancel
           </Button>
-          <Button
-            onClick={onStartInterview}
-            variant="default"
-            className="px-8 py-3 text-lg w-full max-w-xs"
-          >
-            <Play size={20} className="mr-2" />
+          <Button onClick={onStartInterview} className="min-w-28">
+            <Play size={16} className="mr-2" />
             Start Interview
           </Button>
         </div>
 
-        <div className="mt-4 text-center">
+        {/* Footer Information */}
+        <div className="text-center">
           <p className="text-xs text-muted-foreground">
-            By proceeding, you agree to allow camera and microphone access for the interview
-            session.
+            Camera and microphone access will be required for this interview session.
           </p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Recording will start automatically and can be downloaded after completion.
-          </p>
+          {(applicationData.sessionInstruction.screenMonitoring ||
+            applicationData.sessionInstruction.cameraMonitoring) && (
+            <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 border border-yellow-200 rounded px-3 py-1">
+              🔒 This session includes monitoring features for security and assessment purposes.
+            </p>
+          )}
         </div>
       </Card>
     </div>

@@ -49,6 +49,7 @@ export interface IJobApplication extends Document {
     cameraMonitoring: boolean; // Enable camera monitoring
     cameraMonitoringMode: 'photo' | 'video'; // Camera monitoring mode
     cameraMonitoringInterval?: 30 | 60; // Camera monitoring interval in seconds
+    duration: number; // Interview duration in minutes (mandatory)
   };
   instructionsForAi: {
     instruction: string; // Instructions for AI related to the job invitation
@@ -94,7 +95,7 @@ const JobApplicationSchema = new Schema<IJobApplication>(
     jobDetails: {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      skills: [{ type: String, required: true }],
+      skills: [{ type: String }],
       benefits: { type: String },
       requirements: { type: String },
     },
@@ -118,6 +119,12 @@ const JobApplicationSchema = new Schema<IJobApplication>(
       cameraMonitoringInterval: {
         type: Number,
         enum: [30, 60],
+      },
+      duration: {
+        type: Number,
+        required: true,
+        min: 5,
+        max: 180, // Maximum 3 hours
       },
     },
     instructionsForAi: {

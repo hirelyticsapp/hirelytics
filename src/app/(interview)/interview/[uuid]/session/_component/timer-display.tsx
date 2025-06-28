@@ -3,8 +3,15 @@ import React, { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const TimerDisplay = () => {
-  const [timeLeft, setTimeLeft] = useState(20 * 60); // 20 minutes in seconds
+interface TimerDisplayProps {
+  totalQuestions?: number;
+  duration: number; // Duration in minutes from session instruction (mandatory)
+}
+
+const TimerDisplay: React.FC<TimerDisplayProps> = ({ duration }) => {
+  // Use duration directly from session instruction
+  const totalDuration = duration * 60; // Convert minutes to seconds
+  const [timeLeft, setTimeLeft] = useState(totalDuration);
 
   useEffect(() => {
     const timer = setInterval(() => {

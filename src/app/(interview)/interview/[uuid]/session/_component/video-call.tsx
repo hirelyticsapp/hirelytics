@@ -19,6 +19,78 @@ import MediaControls from './media-control';
 import TimerDisplay from './timer-display';
 import UserVideoFeed from './user-video-feed';
 
+interface ApplicationData {
+  id: string;
+  uuid: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  preferredLanguage: string;
+  candidate: {
+    email: string;
+    name: string;
+  };
+  jobDetails: {
+    title: string;
+    description: string;
+    skills: string[];
+    benefits?: string;
+    requirements?: string;
+  };
+  sessionInstruction: {
+    screenMonitoring: boolean;
+    screenMonitoringMode: 'photo' | 'video';
+    screenMonitoringInterval?: 30 | 60;
+    cameraMonitoring: boolean;
+    cameraMonitoringMode: 'photo' | 'video';
+    cameraMonitoringInterval?: 30 | 60;
+    duration: number; // mandatory field
+  };
+  instructionsForAi?: {
+    instruction: string;
+    difficultyLevel: 'easy' | 'normal' | 'hard' | 'expert' | 'advanced';
+    questionMode: 'manual' | 'ai-mode';
+    totalQuestions: number;
+    categoryConfigs: Array<{
+      type: string;
+      numberOfQuestions: number;
+    }>;
+    questions: Array<{
+      id: string;
+      type: string;
+      question: string;
+      isAIGenerated?: boolean;
+    }>;
+  };
+  jobInfo?: {
+    id: string;
+    title: string;
+    description: string;
+    skills: string[];
+    benefits?: string;
+    requirements?: string;
+    location?: string;
+    salary?: string;
+    type?: string;
+    experience?: string;
+    organization?: {
+      id: string;
+      name: string;
+      website?: string;
+      description?: string;
+      industry?: string;
+    };
+  };
+  userInfo?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+}
+
+interface VideoCallProps {
+  applicationData: ApplicationData;
+}
+
 /**
  * Main VideoCall Component
  * Orchestrates all video call functionality including:
@@ -29,7 +101,7 @@ import UserVideoFeed from './user-video-feed';
  * - Snapshot capture
  * - Device management
  */
-const VideoCall = () => {
+const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
   // Main state for interview flow
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
@@ -110,9 +182,79 @@ const VideoCall = () => {
     return () => clearInterval(speakingInterval);
   }, [isInterviewStarted]);
 
-  // Take periodic snapshots for monitoring (every 30 seconds)
+  // Enhanced monitoring based on session instructions
   useEffect(() => {
-    if (!isInterviewStarted) return;
+    if (!isInterviewStarted || !applicationData.sessionInstruction) return;
+
+    const { sessionInstruction } = applicationData;
+    const intervals: NodeJS.Timeout[] = [];
+
+    // Screen monitoring
+    if (
+      sessionInstruction.screenMonitoring &&
+      sessionInstruction.screenMonitoringMode === 'photo'
+    ) {
+      const interval = sessionInstruction.screenMonitoringInterval || 30;
+      const screenMonitoringInterval = setInterval(() => {
+        console.log(`Screen monitoring snapshot taken at: ${new Date().toISOString()}`);
+        if (screenRef.current) {
+          takeSnapshot(screenRef, `screen-monitor-${Date.now()}.jpg`);
+        }
+      }, interval * 1000);
+      intervals.push(screenMonitoringInterval);
+    }
+
+    // Camera monitoring
+    if (
+      sessionInstruction.cameraMonitoring &&
+      sessionInstruction.cameraMonitoringMode === 'photo'
+    ) {
+      const interval = sessionInstruction.cameraMonitoringInterval || 30;
+      const cameraMonitoringInterval = setInterval(() => {
+        console.log(`Camera monitoring snapshot taken at: ${new Date().toISOString()}`);
+        if (videoRef.current) {
+          takeSnapshot(videoRef, `camera-monitor-${Date.now()}.jpg`);
+        }
+      }, interval * 1000);
+      intervals.push(cameraMonitoringInterval);
+    }
+
+    // Video monitoring (continuous recording)
+    if (
+      sessionInstruction.cameraMonitoring &&
+      sessionInstruction.cameraMonitoringMode === 'video'
+    ) {
+      console.log('Starting continuous camera recording for monitoring');
+      startCameraRecording(mediaStream);
+    }
+
+    if (
+      sessionInstruction.screenMonitoring &&
+      sessionInstruction.screenMonitoringMode === 'video' &&
+      screenStream
+    ) {
+      console.log('Starting continuous screen recording for monitoring');
+      startScreenRecording(screenStream);
+    }
+
+    return () => {
+      intervals.forEach(clearInterval);
+    };
+  }, [
+    isInterviewStarted,
+    applicationData,
+    mediaStream,
+    screenStream,
+    takeSnapshot,
+    startCameraRecording,
+    startScreenRecording,
+    videoRef,
+    screenRef,
+  ]);
+
+  // Legacy monitoring - kept for backward compatibility
+  useEffect(() => {
+    if (!isInterviewStarted || applicationData.sessionInstruction) return;
 
     const snapshotInterval = setInterval(() => {
       console.log('Periodic snapshot taken at:', new Date().toISOString());
@@ -120,7 +262,7 @@ const VideoCall = () => {
     }, 30000);
 
     return () => clearInterval(snapshotInterval);
-  }, [isInterviewStarted]);
+  }, [isInterviewStarted, applicationData.sessionInstruction]);
 
   // Start interview handler
   const startInterview = useCallback(() => {
@@ -165,6 +307,7 @@ const VideoCall = () => {
       <InterviewStartScreen
         onStartInterview={startInterview}
         onCancel={() => window.history.back()}
+        applicationData={applicationData}
       />
     );
   }
@@ -174,7 +317,21 @@ const VideoCall = () => {
       {/* Header with status indicators */}
       <header className="flex items-center justify-between p-4 bg-card border-b border-border flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <h1 className="text-lg font-semibold text-foreground">Video Interview Session</h1>
+          <h1 className="text-lg font-semibold text-foreground">
+            {applicationData.jobDetails.title} - Interview
+          </h1>
+
+          {/* Monitoring status indicators */}
+          {applicationData.sessionInstruction?.screenMonitoring && (
+            <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded">
+              Screen Monitoring: {applicationData.sessionInstruction.screenMonitoringMode}
+            </span>
+          )}
+          {applicationData.sessionInstruction?.cameraMonitoring && (
+            <span className="px-2 py-1 bg-orange-500 text-white text-xs rounded">
+              Camera Monitoring: {applicationData.sessionInstruction.cameraMonitoringMode}
+            </span>
+          )}
 
           {/* Status indicators */}
           {isScreenSharing && (
@@ -195,7 +352,10 @@ const VideoCall = () => {
         </div>
 
         {/* Timer display */}
-        <TimerDisplay />
+        <TimerDisplay
+          totalQuestions={applicationData.instructionsForAi?.totalQuestions}
+          duration={applicationData.sessionInstruction.duration}
+        />
       </header>
 
       {/* Main Content Area - Single unified layout */}
@@ -361,6 +521,21 @@ const VideoCall = () => {
 
       {/* Hidden canvas for snapshot functionality */}
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Monitoring Information Footer */}
+      {(applicationData.sessionInstruction?.screenMonitoring ||
+        applicationData.sessionInstruction?.cameraMonitoring) && (
+        <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-200 text-xs text-yellow-800 flex items-center justify-center">
+          <span className="mr-2">🔒</span>
+          <span>
+            This session includes monitoring features for security and assessment purposes.
+            {applicationData.sessionInstruction?.screenMonitoring &&
+              ` Screen: ${applicationData.sessionInstruction.screenMonitoringMode}`}
+            {applicationData.sessionInstruction?.cameraMonitoring &&
+              ` | Camera: ${applicationData.sessionInstruction.cameraMonitoringMode}`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

@@ -68,26 +68,28 @@ export const applyJobFromInvitation = async (invitationId: string, preferredLang
     };
   }
 
-  // Use default values from job configuration or set sensible defaults
+  // Set default session instruction values - no dependency on job collection
   const sessionInstruction = {
-    screenMonitoring: job.interviewConfig?.screenMonitoring || false,
-    screenMonitoringMode: job.interviewConfig?.screenMonitoringMode || 'photo',
-    screenMonitoringInterval: job.interviewConfig?.screenMonitoringInterval || 30,
-    cameraMonitoring: job.interviewConfig?.cameraMonitoring || false,
-    cameraMonitoringMode: job.interviewConfig?.cameraMonitoringMode || 'photo',
-    cameraMonitoringInterval: job.interviewConfig?.cameraMonitoringInterval || 30,
+    screenMonitoring: false, // Default disabled
+    screenMonitoringMode: 'photo' as const,
+    screenMonitoringInterval: 30,
+    cameraMonitoring: true, // Default enabled for security
+    cameraMonitoringMode: 'photo' as const,
+    cameraMonitoringInterval: 60,
+    duration: 30, // Default 30 minutes (mandatory)
   };
 
+  // Set default AI instructions - no dependency on job collection
   const instructionsForAi = {
-    instruction: job.interviewConfig?.instructions || 'Standard interview questions',
-    difficultyLevel: job.interviewConfig?.difficultyLevel || 'normal',
-    questionMode: job.questionsConfig?.mode || 'ai-mode',
-    totalQuestions: job.questionsConfig?.totalQuestions || 10,
-    categoryConfigs: job.questionsConfig?.categoryConfigs || [
+    instruction: 'Standard interview questions',
+    difficultyLevel: 'normal' as const,
+    questionMode: 'ai-mode' as const,
+    totalQuestions: 10,
+    categoryConfigs: [
       { type: 'general', numberOfQuestions: 5 },
       { type: 'technical', numberOfQuestions: 5 },
     ],
-    questions: job.questionsConfig?.questions || [],
+    questions: [],
   };
 
   // Create job application
@@ -303,6 +305,162 @@ export async function getJobApplicationById(applicationId: string) {
     if (job?.organizationId?._id?.toString() !== userWithOrg.organizationId) {
       throw new Error('You can only view applications for your organization.');
     }
+  }
+
+  const jobId = application.jobId as unknown as {
+    _id: { toString(): string };
+    title: string;
+    description: string;
+    skills: string[];
+    benefits?: string;
+    requirements?: string;
+    location?: string;
+    salary?: string;
+    type?: string;
+    experience?: string;
+    organizationId?: {
+      _id: { toString(): string };
+      name: string;
+      website?: string;
+      description?: string;
+      industry?: string;
+    };
+  };
+
+  const userId = application.userId as unknown as {
+    _id: { toString(): string };
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+
+  return {
+    id: application._id.toString(),
+    uuid: application.uuid,
+    status: application.status,
+    preferredLanguage: application.preferredLanguage,
+    candidate: {
+      email: application.candidate.email,
+      name: application.candidate.name,
+    },
+    jobDetails: {
+      title: application.jobDetails.title,
+      description: application.jobDetails.description,
+      skills: application.jobDetails.skills || [],
+      benefits: application.jobDetails.benefits,
+      requirements: application.jobDetails.requirements,
+    },
+    sessionInstruction: application.sessionInstruction ? application.sessionInstruction : undefined,
+    instructionsForAi: application.instructionsForAi
+      ? {
+          instruction: application.instructionsForAi.instruction,
+          difficultyLevel: application.instructionsForAi.difficultyLevel,
+          questionMode: application.instructionsForAi.questionMode,
+          totalQuestions: application.instructionsForAi.totalQuestions,
+          categoryConfigs:
+            application.instructionsForAi.categoryConfigs?.map(
+              (config: { type: string; numberOfQuestions: number; _id?: unknown }) => ({
+                type: config.type,
+                numberOfQuestions: config.numberOfQuestions,
+              })
+            ) || [],
+          questions:
+            application.instructionsForAi.questions?.map(
+              (question: {
+                id: string;
+                type: string;
+                question: string;
+                isAIGenerated?: boolean;
+                _id?: unknown;
+              }) => ({
+                id: question.id,
+                type: question.type,
+                question: question.question,
+                isAIGenerated: question.isAIGenerated || false,
+              })
+            ) || [],
+        }
+      : undefined,
+    monitoringImages: application.monitoringImages
+      ? {
+          camera:
+            application.monitoringImages.camera?.map((img: { s3Key: string; timestamp: Date }) => ({
+              s3Key: img.s3Key,
+              timestamp: new Date(img.timestamp).toISOString(),
+            })) || [],
+          screen:
+            application.monitoringImages.screen?.map((img: { s3Key: string; timestamp: Date }) => ({
+              s3Key: img.s3Key,
+              timestamp: new Date(img.timestamp).toISOString(),
+            })) || [],
+        }
+      : undefined,
+    jobInfo: application.jobId
+      ? {
+          id: jobId._id.toString(),
+          title: jobId.title,
+          description: jobId.description,
+          skills: jobId.skills || [],
+          benefits: jobId.benefits,
+          requirements: jobId.requirements,
+          location: jobId.location,
+          salary: jobId.salary,
+          type: jobId.type,
+          experience: jobId.experience,
+          organization: jobId.organizationId
+            ? {
+                id: jobId.organizationId._id.toString(),
+                name: jobId.organizationId.name,
+                website: jobId.organizationId.website,
+                description: jobId.organizationId.description,
+                industry: jobId.organizationId.industry,
+              }
+            : undefined,
+        }
+      : undefined,
+    userInfo: application.userId
+      ? {
+          id: userId._id.toString(),
+          name: userId.name,
+          email: userId.email,
+          avatar: userId.avatar,
+        }
+      : undefined,
+    createdAt: new Date(application.createdAt).toISOString(),
+    updatedAt: new Date(application.updatedAt).toISOString(),
+  };
+}
+
+export async function getJobApplicationByUuid(uuid: string) {
+  await connectToDatabase();
+
+  const { user } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to view application details.');
+  }
+
+  const application = await JobApplication.findOne({ uuid })
+    .populate({
+      path: 'jobId',
+      select:
+        'title description skills benefits requirements organizationId location salary type experience',
+      populate: {
+        path: 'organizationId',
+        select: 'name website description industry',
+      },
+    })
+    .populate('userId', 'name email avatar')
+    .lean()
+    .exec();
+
+  if (!application) {
+    throw new Error('Interview session not found.');
+  }
+
+  // Candidates can only view their own applications for interview sessions
+  const userIdObj = application.userId as unknown as { _id: { toString(): string } };
+  if (userIdObj._id.toString() !== user.id) {
+    throw new Error('You can only access your own interview session.');
   }
 
   const jobId = application.jobId as unknown as {
