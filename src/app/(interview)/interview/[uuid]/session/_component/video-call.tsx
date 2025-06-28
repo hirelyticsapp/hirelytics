@@ -4,15 +4,15 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
+// Import custom hooks for managing different aspects of the video call
+import { useMediaStream } from '../hooks/use-media-stream';
+import { useRecording } from '../hooks/use-recording';
+import { useScreenShare } from '../hooks/use-screen-share';
+import { useSnapshot } from '../hooks/use-snapshot';
+import { useSpeechRecognition } from '../hooks/use-speech-recognition';
 import AIVideoFeed from './ai-video-feed';
 import ChatTranscript from './chat-transcript';
 import DeviceSelector from './device-selector';
-// Import custom hooks for managing different aspects of the video call
-import { useMediaStream } from './hooks/use-media-stream';
-import { useRecording } from './hooks/use-recording';
-import { useScreenShare } from './hooks/use-screen-share';
-import { useSnapshot } from './hooks/use-snapshot';
-import { useSpeechRecognition } from './hooks/use-speech-recognition';
 // Import UI components
 import InterviewStartScreen from './interview-start-screen';
 import MediaControls from './media-control';
