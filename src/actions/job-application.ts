@@ -7,7 +7,7 @@ import JobInvitation from '@/db/schema/job-invitation';
 import User from '@/db/schema/user';
 import { auth } from '@/lib/auth/server';
 
-export const applyJobFromInvitation = async (invitationId: string) => {
+export const applyJobFromInvitation = async (invitationId: string, preferredLanguage?: string) => {
   if (!invitationId) {
     throw new Error('Invitation ID is required to apply for the job.');
   }
@@ -87,7 +87,7 @@ export const applyJobFromInvitation = async (invitationId: string) => {
     uuid: applicationUuid,
     jobId,
     userId: user.id,
-    preferredLanguage: 'en', // Default language, can be made configurable later
+    preferredLanguage: preferredLanguage || 'en-US', // Use provided language or default to en-US
     status: 'pending',
     candidate: {
       email: candidate.email,
