@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ export function InterviewClient() {
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string | null>(null);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string | null>(null);
   const router = useRouter();
+  const params = useParams();
+  const uuid = params.uuid as string;
 
   const handleDeviceCheckComplete = (camera: boolean, microphone: boolean) => {
     setCameraChecked(camera);
@@ -39,7 +41,7 @@ export function InterviewClient() {
   }, []);
 
   const handleStartInterview = () => {
-    router.push('session');
+    router.push(`/interview/${uuid}/session`);
   };
 
   const bothDevicesChecked = cameraChecked && micChecked;

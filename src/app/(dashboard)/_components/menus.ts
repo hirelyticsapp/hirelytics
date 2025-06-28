@@ -68,6 +68,12 @@ const adminNavigationMenus = [
         color: 'text-orange-500',
       },
       {
+        title: 'Mock Jobs',
+        url: '/mock-jobs',
+        icon: IconBriefcase,
+        color: 'text-purple-500',
+      },
+      {
         title: 'Applied Jobs',
         url: '/applied-jobs',
         icon: IconBriefcaseFilled,
@@ -150,6 +156,12 @@ const candidateNavigationMenus = [
         url: '/my-applications',
         icon: IconUsers,
         color: 'text-indigo-500',
+      },
+      {
+        title: 'Mock Interviews',
+        url: '/mock-interviews',
+        icon: IconBasketQuestion,
+        color: 'text-purple-500',
       },
     ],
   },

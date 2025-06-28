@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import { getJobById } from '@/actions/job';
 import { JobDetailsPage } from '@/app/(dashboard)/(admin)/jobs/_components/job-form/job-details-page';
 
-interface JobSetupPageProps {
+interface MockJobSetupPageProps {
   params: Promise<{
     jobId: string;
   }>;
 }
 
-export default async function JobSetupPage({ params }: JobSetupPageProps) {
+export default async function MockJobSetupPage({ params }: MockJobSetupPageProps) {
   const { jobId } = await params;
   const result = await getJobById(jobId);
 

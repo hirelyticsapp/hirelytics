@@ -41,6 +41,7 @@ export interface IJob extends Document {
   benefits?: string;
   recruiter: mongoose.Types.ObjectId | IUser;
   status: 'draft' | 'published' | 'expired' | 'deleted'; // Added deleted status
+  jobType: 'regular' | 'mock'; // New field to differentiate job types
   interviewConfig: IInterviewConfig; // New interview configuration object
   questionsConfig: IQuestionConfig; // New unified questions configuration
   deletedAt?: Date; // When the job was deleted
@@ -210,6 +211,11 @@ const JobSchema = new Schema<IJob>(
       type: String,
       enum: ['draft', 'published', 'expired', 'deleted'],
       default: 'draft',
+    },
+    jobType: {
+      type: String,
+      enum: ['regular', 'mock'],
+      default: 'regular',
     },
     recruiter: {
       type: Schema.Types.ObjectId,

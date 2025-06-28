@@ -27,15 +27,30 @@ const S3SignedImage = ({
 }: S3ImageProps) => {
   // Generate the signed URL for the S3 object
 
+  const containsHttp = src.startsWith('http://') || src.startsWith('https://');
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['s3Image', src, expiresInSeconds],
     queryFn: async () => {
       return await signedUrl(src, expiresInSeconds);
     },
+    enabled: !containsHttp, // Only fetch if src is not a direct HTTP URL
     refetchOnWindowFocus: false, // Prevent refetching on window focus
   });
 
-  console.log(data, isLoading, error);
+  if (containsHttp) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        fill={fill} // Use fill mode if specified
+        priority // Ensures the image is loaded quickly
+        className={className} // Apply any additional styles
+      />
+    );
+  }
 
   if (isLoading) {
     return <Spinner />;

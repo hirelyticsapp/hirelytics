@@ -28,7 +28,9 @@ export async function fetchJobs(
   const limit = pagination.pageSize || 10;
   const skip = pagination.pageIndex * limit;
 
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    jobType: { $ne: 'mock' }, // Exclude mock jobs from regular job listings
+  };
 
   if (filters.search) {
     filter['$or'] = [
@@ -692,5 +694,182 @@ export async function updateJobBasicDetails(jobId: string, data: BasicJobDetails
       success: false,
       error: 'Failed to update job basic details',
     };
+  }
+}
+
+// New function to fetch mock interviews
+export async function fetchMockInterviews(
+  pagination: PaginationState,
+  filters: TableFilters,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sorting: any[]
+): Promise<TableData<Partial<IJob>>> {
+  await connectToDatabase();
+
+  const { isAdmin } = await auth();
+
+  if (!isAdmin) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  pagination.pageIndex = pagination.pageIndex || 0;
+  const limit = pagination.pageSize || 10;
+  const skip = pagination.pageIndex * limit;
+
+  const filter: Record<string, unknown> = {
+    jobType: 'mock', // Only fetch mock jobs
+    deleted: { $ne: true },
+  };
+
+  if (filters.search) {
+    filter['$or'] = [
+      { title: { $regex: filters.search, $options: 'i' } },
+      { description: { $regex: filters.search, $options: 'i' } },
+    ];
+  }
+
+  if (filters.status) {
+    filter['status'] = filters.status;
+  }
+
+  const [totalCount, data] = await Promise.all([
+    Job.countDocuments(filter),
+    Job.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort(sorting.length > 0 ? { [sorting[0].id]: sorting[0].desc ? -1 : 1 } : {})
+      .select('title industry expiryDate location status createdAt jobType')
+      .then((jobs) =>
+        jobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          industry: job.industry,
+          expiryDate: job.expiryDate,
+          location: job.location,
+          status: job.status,
+          jobType: job.jobType,
+          createdAt: job.createdAt,
+        }))
+      ),
+  ]);
+
+  return {
+    data,
+    totalCount,
+    pageCount: Math.ceil(totalCount / limit),
+  };
+}
+
+// Function to fetch published mock interviews for candidates
+export async function fetchPublishedMockInterviews(
+  pagination: PaginationState,
+  filters: TableFilters,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sorting: any[]
+): Promise<TableData<Partial<IJob>>> {
+  await connectToDatabase();
+
+  pagination.pageIndex = pagination.pageIndex || 0;
+  const limit = pagination.pageSize || 10;
+  const skip = pagination.pageIndex * limit;
+
+  const filter: Record<string, unknown> = {
+    jobType: 'mock',
+    status: 'published',
+    deleted: { $ne: true },
+  };
+
+  if (filters.search) {
+    filter['$or'] = [
+      { title: { $regex: filters.search, $options: 'i' } },
+      { description: { $regex: filters.search, $options: 'i' } },
+    ];
+  }
+
+  const [totalCount, data] = await Promise.all([
+    Job.countDocuments(filter),
+    Job.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort(sorting.length > 0 ? { [sorting[0].id]: sorting[0].desc ? -1 : 1 } : {})
+      .populate('organizationId', 'name')
+      .select(
+        'title industry expiryDate location skills description organizationId interviewConfig'
+      )
+      .then((jobs) =>
+        jobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          industry: job.industry,
+          expiryDate: job.expiryDate,
+          location: job.location,
+          skills: job.skills,
+          description: job.description,
+          organizationName:
+            typeof job.organizationId === 'object' &&
+            job.organizationId &&
+            'name' in job.organizationId
+              ? (job.organizationId as { name: string }).name
+              : 'Unknown Organization',
+          interviewConfig: job.interviewConfig,
+        }))
+      ),
+  ]);
+
+  return {
+    data,
+    totalCount,
+    pageCount: Math.ceil(totalCount / limit),
+  };
+}
+
+// Function to create a mock interview
+export async function createMockInterview(data: BasicJobDetails, recruiterId?: string) {
+  try {
+    await connectToDatabase();
+
+    const { isAdmin } = await auth();
+
+    if (!isAdmin) {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
+    // Create the mock interview job
+    const mockJob = new Job({
+      title: data.title,
+      organizationId: data.organizationId,
+      industry: data.industry,
+      location: data.location,
+      salary: data.salary,
+      currency: data.currency,
+      skills: data.skills,
+      status: data.status || 'draft',
+      jobType: 'mock', // Set as mock job
+      expiryDate: data.expiryDate,
+      description: '', // Will be filled in later steps
+      recruiter: recruiterId || null,
+      interviewConfig: {
+        duration: 30,
+        difficultyLevel: 'normal',
+        screenMonitoring: false,
+        screenMonitoringMode: 'photo',
+        screenMonitoringInterval: 30,
+        cameraMonitoring: false,
+        cameraMonitoringMode: 'photo',
+        cameraMonitoringInterval: 30,
+      },
+      questionsConfig: {
+        mode: 'ai-mode',
+        totalQuestions: 5,
+        categoryConfigs: [],
+        questionTypes: [],
+      },
+    });
+
+    const savedJob = await mockJob.save();
+    return { success: true, jobId: savedJob.id };
+  } catch (error) {
+    console.error('Error creating mock interview:', error);
+    return { success: false, error: 'Failed to create mock interview' };
   }
 }
