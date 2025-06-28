@@ -53,7 +53,7 @@ const VideoArea: React.FC<VideoAreaProps> = ({
   return (
     <>
       {/* Mobile Layout */}
-      <div className="lg:hidden relative bg-black flex-1 min-h-0">
+      <div className="lg:hidden relative bg-muted flex-1 min-h-0">
         {/* Screen Share View for Mobile */}
         {isScreenSharing && screenStream ? (
           <div className="relative w-full h-full flex items-center justify-center">
@@ -67,7 +67,7 @@ const VideoArea: React.FC<VideoAreaProps> = ({
             />
 
             {/* User Camera Picture in Picture */}
-            <div className="absolute top-4 right-4 w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg">
+            <div className="absolute top-4 right-4 w-24 h-24 rounded-lg overflow-hidden border-2 border-border shadow-lg">
               <UserVideoFeed
                 videoRef={videoRef}
                 isCameraOff={isCameraOff}
@@ -83,10 +83,7 @@ const VideoArea: React.FC<VideoAreaProps> = ({
             {/* Screen Recording Controls */}
             {!isScreenRecording ? (
               <div className="absolute top-1/2 left-4">
-                <Button
-                  onClick={onStartScreenRecording}
-                  className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
-                >
+                <Button onClick={onStartScreenRecording} variant="default" size="sm">
                   Start Screen Recording
                 </Button>
               </div>
@@ -94,7 +91,9 @@ const VideoArea: React.FC<VideoAreaProps> = ({
               <div className="absolute top-1/2 left-4">
                 <Button
                   onClick={onStopScreenRecording}
-                  className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 animate-pulse"
+                  variant="destructive"
+                  size="sm"
+                  className="animate-pulse"
                 >
                   Stop Screen Recording
                 </Button>
@@ -104,10 +103,7 @@ const VideoArea: React.FC<VideoAreaProps> = ({
             {/* Download Screen Recording Button */}
             {screenRecordedChunks.length > 0 && !isScreenRecording && (
               <div className="absolute bottom-1/2 left-4">
-                <Button
-                  onClick={onDownloadScreenRecording}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                >
+                <Button onClick={onDownloadScreenRecording} variant="secondary" size="sm">
                   Download Screen Recording
                 </Button>
               </div>
@@ -134,7 +130,7 @@ const VideoArea: React.FC<VideoAreaProps> = ({
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex flex-1 relative bg-black min-h-0">
+      <div className="hidden lg:flex flex-1 relative bg-muted min-h-0">
         {/* Main User Camera - Always visible on desktop */}
         <div className="relative w-full h-full">
           <UserVideoFeed
@@ -150,17 +146,17 @@ const VideoArea: React.FC<VideoAreaProps> = ({
 
           {/* Screen Share - Small window in bottom right when active */}
           {isScreenSharing && screenStream && (
-            <div className="absolute bottom-20 right-4 w-64 h-48 rounded-lg overflow-hidden border-2 border-blue-500 dark:border-blue-400 shadow-lg z-10">
+            <div className="absolute bottom-20 right-4 w-64 h-48 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-10">
               <video
                 ref={screenRef}
                 autoPlay
                 muted
                 playsInline
-                className="w-full h-full object-contain bg-black"
+                className="w-full h-full object-contain bg-muted"
               />
 
               {/* Screen share label */}
-              <div className="absolute top-2 left-2 bg-blue-600 dark:bg-blue-500 px-2 py-1 rounded text-xs text-white">
+              <div className="absolute top-2 left-2 bg-primary px-2 py-1 rounded text-xs text-primary-foreground">
                 Screen Share
               </div>
 
@@ -170,7 +166,8 @@ const VideoArea: React.FC<VideoAreaProps> = ({
                   <Button
                     size="sm"
                     onClick={onStartScreenRecording}
-                    className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-xs"
+                    variant="default"
+                    className="text-xs"
                   >
                     Record
                   </Button>
@@ -178,7 +175,8 @@ const VideoArea: React.FC<VideoAreaProps> = ({
                   <Button
                     size="sm"
                     onClick={onStopScreenRecording}
-                    className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-xs animate-pulse"
+                    variant="destructive"
+                    className="text-xs animate-pulse"
                   >
                     Stop
                   </Button>
@@ -189,7 +187,8 @@ const VideoArea: React.FC<VideoAreaProps> = ({
                   <Button
                     size="sm"
                     onClick={onDownloadScreenRecording}
-                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-xs"
+                    variant="secondary"
+                    className="text-xs"
                   >
                     <Download size={12} />
                   </Button>

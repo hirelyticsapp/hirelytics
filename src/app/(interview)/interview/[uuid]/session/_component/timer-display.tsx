@@ -21,9 +21,9 @@ const TimerDisplay = () => {
   };
 
   const getTimerColor = () => {
-    if (timeLeft <= 60) return 'text-red-500 dark:text-red-400'; // Last minute - red with bounce
-    if (timeLeft <= 300) return 'text-yellow-500 dark:text-yellow-400'; // Last 5 minutes - warning yellow
-    return 'text-gray-800 dark:text-white';
+    if (timeLeft <= 60) return 'text-destructive'; // Last minute - red with bounce
+    if (timeLeft <= 300) return 'text-muted-foreground'; // Last 5 minutes - warning
+    return 'text-foreground';
   };
 
   const shouldBounce = timeLeft <= 60 && timeLeft > 0;
@@ -31,7 +31,7 @@ const TimerDisplay = () => {
   return (
     <div
       className={cn(
-        'flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600',
+        'flex items-center space-x-2 px-3 py-1 rounded-lg bg-muted border border-border',
         shouldBounce && 'animate-bounce'
       )}
     >

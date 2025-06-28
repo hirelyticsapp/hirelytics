@@ -17,7 +17,7 @@ export function MediaUnsupportedFallback({ onProceedAnyway }: MediaUnsupportedFa
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-orange-600">
+        <CardTitle className="flex items-center gap-2 text-destructive">
           <AlertTriangle className="w-5 h-5" />
           Media Access Not Available
         </CardTitle>
@@ -36,11 +36,11 @@ export function MediaUnsupportedFallback({ onProceedAnyway }: MediaUnsupportedFa
 
           <div className="space-y-2">
             {!isHttps && !isLocalhost && (
-              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 bg-primary/10 rounded-lg">
+                <Shield className="w-5 h-5 text-primary mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-800">Use HTTPS</p>
-                  <p className="text-sm text-blue-700">
+                  <p className="font-medium text-primary">Use HTTPS</p>
+                  <p className="text-sm text-muted-foreground">
                     Most browsers require a secure connection (HTTPS) to access camera and
                     microphone.
                   </p>
@@ -48,22 +48,22 @@ export function MediaUnsupportedFallback({ onProceedAnyway }: MediaUnsupportedFa
               </div>
             )}
 
-            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-              <Globe className="w-5 h-5 text-green-600 mt-0.5" />
+            <div className="flex items-start gap-3 p-3 bg-accent rounded-lg">
+              <Globe className="w-5 h-5 text-accent-foreground mt-0.5" />
               <div>
-                <p className="font-medium text-green-800">Use a Modern Browser</p>
-                <p className="text-sm text-green-700">
+                <p className="font-medium text-accent-foreground">Use a Modern Browser</p>
+                <p className="text-sm text-muted-foreground">
                   Ensure you&apos;re using an up-to-date version of Chrome, Firefox, Safari, or
                   Edge.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-              <Shield className="w-5 h-5 text-purple-600 mt-0.5" />
+            <div className="flex items-start gap-3 p-3 bg-secondary rounded-lg">
+              <Shield className="w-5 h-5 text-secondary-foreground mt-0.5" />
               <div>
-                <p className="font-medium text-purple-800">Check Browser Permissions</p>
-                <p className="text-sm text-purple-700">
+                <p className="font-medium text-secondary-foreground">Check Browser Permissions</p>
+                <p className="text-sm text-muted-foreground">
                   Make sure your browser allows camera and microphone access for this site.
                 </p>
               </div>

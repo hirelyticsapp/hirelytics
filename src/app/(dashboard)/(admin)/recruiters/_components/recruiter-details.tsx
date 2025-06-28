@@ -48,10 +48,10 @@ export default function RecruiterDetails({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
-                  {selectedRecruiter.image ? (
+                  {selectedRecruiter?.image ? (
                     <Image
-                      src={selectedRecruiter.image}
-                      alt={selectedRecruiter.name}
+                      src={selectedRecruiter?.image}
+                      alt={selectedRecruiter?.name as string}
                       width={48}
                       height={48}
                       className="h-12 w-12 rounded-full object-cover"
@@ -59,13 +59,13 @@ export default function RecruiterDetails({
                   ) : (
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
                       <span className="text-lg font-medium text-muted-foreground">
-                        {selectedRecruiter.name.charAt(0).toUpperCase()}
+                        {selectedRecruiter?.name?.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold">{selectedRecruiter.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedRecruiter.email}</p>
+                    <h3 className="font-semibold">{selectedRecruiter?.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedRecruiter?.email}</p>
                   </div>
                 </div>
 
@@ -76,10 +76,10 @@ export default function RecruiterDetails({
                     <Label className="text-sm font-medium text-muted-foreground">Role</Label>
                     <div className="mt-1">
                       <Badge
-                        variant={getRoleVariant(selectedRecruiter.role)}
+                        variant={getRoleVariant(selectedRecruiter?.role)}
                         className="capitalize"
                       >
-                        {selectedRecruiter.role}
+                        {selectedRecruiter?.role}
                       </Badge>
                     </div>
                   </div>
@@ -88,8 +88,8 @@ export default function RecruiterDetails({
                       Email Verified
                     </Label>
                     <div className="mt-1">
-                      <Badge variant={selectedRecruiter.emailVerified ? 'success' : 'destructive'}>
-                        {selectedRecruiter.emailVerified ? 'Verified' : 'Not Verified'}
+                      <Badge variant={selectedRecruiter?.emailVerified ? 'success' : 'destructive'}>
+                        {selectedRecruiter?.emailVerified ? 'Verified' : 'Not Verified'}
                       </Badge>
                     </div>
                   </div>
@@ -109,7 +109,7 @@ export default function RecruiterDetails({
                       Member Since
                     </Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedRecruiter.createdAt), 'PPP')}
+                      {format(new Date(selectedRecruiter?.createdAt), 'PPP')}
                     </p>
                   </div>
                   <div>
@@ -117,16 +117,16 @@ export default function RecruiterDetails({
                       Last Updated
                     </Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedRecruiter.updatedAt), 'PPP')}
+                      {format(new Date(selectedRecruiter?.updatedAt), 'PPP')}
                     </p>
                   </div>
                 </div>
 
-                {selectedRecruiter.lastLoginAt && (
+                {selectedRecruiter?.lastLoginAt && (
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Last Login</Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedRecruiter.lastLoginAt), 'PPP p')}
+                      {format(new Date(selectedRecruiter?.lastLoginAt), 'PPP p')}
                     </p>
                   </div>
                 )}
@@ -134,7 +134,7 @@ export default function RecruiterDetails({
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
                   <p className="mt-1 text-sm font-mono text-xs bg-muted/50 p-2 rounded-md break-all">
-                    {selectedRecruiter.id}
+                    {selectedRecruiter?.id}
                   </p>
                 </div>
               </CardContent>
@@ -150,16 +150,16 @@ export default function RecruiterDetails({
                   <Label className="text-sm font-medium text-muted-foreground">
                     Account Status
                   </Label>
-                  <Badge variant={selectedRecruiter.deleted ? 'destructive' : 'success'}>
-                    {selectedRecruiter.deleted ? 'Deleted' : 'Active'}
+                  <Badge variant={selectedRecruiter?.deleted ? 'destructive' : 'success'}>
+                    {selectedRecruiter?.deleted ? 'Deleted' : 'Active'}
                   </Badge>
                 </div>
 
-                {selectedRecruiter.deleted && selectedRecruiter.deletedAt && (
+                {selectedRecruiter?.deleted && selectedRecruiter?.deletedAt && (
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Deleted On</Label>
                     <p className="mt-1 text-sm text-destructive">
-                      {format(new Date(selectedRecruiter.deletedAt), 'PPP p')}
+                      {format(new Date(selectedRecruiter?.deletedAt), 'PPP p')}
                     </p>
                   </div>
                 )}

@@ -170,27 +170,25 @@ const VideoCall = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header with status indicators */}
-      <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <header className="flex items-center justify-between p-4 bg-card border-b border-border flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Video Interview Session
-          </h1>
+          <h1 className="text-lg font-semibold text-foreground">Video Interview Session</h1>
 
           {/* Status indicators */}
           {isScreenSharing && (
-            <span className="px-2 py-1 bg-blue-600 dark:bg-blue-500 text-white text-xs rounded animate-pulse">
+            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse">
               Screen Sharing
             </span>
           )}
           {isCameraRecording && (
-            <span className="px-2 py-1 bg-red-600 dark:bg-red-500 text-white text-xs rounded animate-pulse">
+            <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs rounded animate-pulse">
               ● Camera Recording
             </span>
           )}
           {isScreenRecording && (
-            <span className="px-2 py-1 bg-green-600 dark:bg-green-500 text-white text-xs rounded animate-pulse">
+            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse">
               ● Screen Recording
             </span>
           )}
@@ -203,7 +201,7 @@ const VideoCall = () => {
       {/* Main Content Area - Single unified layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Side - Video Area */}
-        <div className="flex-1 relative bg-black overflow-hidden">
+        <div className="flex-1 relative bg-muted overflow-hidden">
           {/* Main User Camera */}
           <div className="w-full h-full relative flex items-center justify-center">
             {/* 
@@ -222,10 +220,12 @@ const VideoCall = () => {
             {/* Status Indicators */}
             <div className="absolute top-4 left-4 flex flex-col space-y-2 z-10">
               {isMuted && (
-                <div className="bg-red-600 text-white px-2 py-1 rounded text-xs">Muted</div>
+                <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                  Muted
+                </div>
               )}
               {isCameraRecording && (
-                <div className="bg-red-600 text-white px-2 py-1 rounded text-xs animate-pulse">
+                <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs animate-pulse">
                   ● Recording
                 </div>
               )}
@@ -238,17 +238,17 @@ const VideoCall = () => {
 
             {/* Screen Share - Always Bottom Right Corner of User Video (when active) */}
             {isScreenSharing && screenStream && (
-              <div className="absolute bottom-4 right-4 w-48 h-32 md:w-64 md:h-40 rounded-lg overflow-hidden border-2 border-blue-500 dark:border-blue-400 shadow-lg z-15">
+              <div className="absolute bottom-4 right-4 w-48 h-32 md:w-64 md:h-40 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-15">
                 <video
                   ref={screenRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-contain bg-black"
+                  className="w-full h-full object-contain bg-muted"
                 />
 
                 {/* Screen share label */}
-                <div className="absolute top-1 left-1 bg-blue-600 dark:bg-blue-500 px-2 py-1 rounded text-xs text-white">
+                <div className="absolute top-1 left-1 bg-primary px-2 py-1 rounded text-xs text-primary-foreground">
                   Screen Share
                 </div>
 
@@ -258,7 +258,8 @@ const VideoCall = () => {
                     <Button
                       size="sm"
                       onClick={handleStartScreenRecording}
-                      className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
+                      variant="default"
+                      className="text-xs px-2 py-1 h-6"
                     >
                       Rec
                     </Button>
@@ -266,7 +267,8 @@ const VideoCall = () => {
                     <Button
                       size="sm"
                       onClick={stopScreenRecording}
-                      className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1 h-6 animate-pulse"
+                      variant="destructive"
+                      className="text-xs px-2 py-1 h-6 animate-pulse"
                     >
                       Stop
                     </Button>
@@ -276,7 +278,8 @@ const VideoCall = () => {
                     <Button
                       size="sm"
                       onClick={downloadScreenRecording}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs px-1 py-1 h-6"
+                      variant="secondary"
+                      className="text-xs px-1 py-1 h-6"
                     >
                       <Download size={10} />
                     </Button>
@@ -288,19 +291,20 @@ const VideoCall = () => {
         </div>
 
         {/* Right Side - Chat Transcript (Hidden on mobile, shown on desktop) */}
-        <div className="hidden md:flex w-80 lg:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="hidden md:flex w-80 lg:w-96 bg-card border-l border-border flex-shrink-0">
           <ChatTranscript messages={transcriptMessages} />
         </div>
 
         {/* Mobile Chat Overlay (only on mobile when toggled) */}
         {showMobileChat && (
-          <div className="md:hidden absolute inset-x-4 bottom-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-80 overflow-hidden z-30">
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div className="md:hidden absolute inset-x-4 bottom-24 bg-card rounded-lg shadow-xl border border-border max-h-80 overflow-hidden z-30">
+            <div className="p-3 border-b border-border flex justify-between items-center">
               <h3 className="text-sm font-semibold">Interview Transcript</h3>
               <Button
                 size="sm"
                 onClick={() => setShowMobileChat(false)}
-                className="h-6 w-6 p-0 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-300"
+                variant="ghost"
+                className="h-6 w-6 p-0"
               >
                 ×
               </Button>
@@ -313,7 +317,7 @@ const VideoCall = () => {
       </div>
 
       {/* Bottom Controls Panel - Always at bottom, separate from content */}
-      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 flex-shrink-0">
+      <div className="bg-card border-t border-border p-3 md:p-4 flex-shrink-0">
         <div className="flex justify-center items-center space-x-2">
           {/* Mobile Chat Toggle (only on mobile) */}
           <div className="md:hidden">

@@ -97,7 +97,7 @@ export function MediaDeviceSelector({
 
   return (
     <div className="w-full space-y-4">
-      {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+      {error && <div className="text-destructive text-sm mb-2">{error}</div>}
 
       <div className="space-y-2">
         <Label htmlFor="camera-select">Camera</Label>

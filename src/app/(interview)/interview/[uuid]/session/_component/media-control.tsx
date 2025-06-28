@@ -49,18 +49,13 @@ const MediaControls: React.FC<MediaControlsProps> = ({
   hasRecording,
 }) => {
   return (
-    <div className="flex items-center justify-center space-x-2 bg-black/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg">
+    <div className="flex items-center justify-center space-x-2 bg-background/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border">
       {/* Microphone */}
       <Button
-        variant="ghost"
+        variant={isMuted ? 'destructive' : 'outline'}
         size="sm"
         onClick={onToggleMute}
-        className={cn(
-          'h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200',
-          isMuted
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-gray-700 hover:bg-gray-600 text-white'
-        )}
+        className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
         title={isMuted ? 'Unmute' : 'Mute'}
       >
         {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
@@ -68,15 +63,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
 
       {/* Camera */}
       <Button
-        variant="ghost"
+        variant={isCameraOff ? 'destructive' : 'outline'}
         size="sm"
         onClick={onToggleCamera}
-        className={cn(
-          'h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200',
-          isCameraOff
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-gray-700 hover:bg-gray-600 text-white'
-        )}
+        className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
         title={isCameraOff ? 'Turn On Camera' : 'Turn Off Camera'}
       >
         {isCameraOff ? <CameraOff size={18} /> : <Camera size={18} />}
@@ -84,14 +74,12 @@ const MediaControls: React.FC<MediaControlsProps> = ({
 
       {/* Screen Share */}
       <Button
-        variant="ghost"
+        variant={isScreenSharing ? 'default' : 'outline'}
         size="sm"
         onClick={onToggleScreenShare}
         className={cn(
           'h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200',
-          isScreenSharing
-            ? 'bg-blue-500 hover:bg-blue-600 text-white animate-pulse'
-            : 'bg-gray-700 hover:bg-gray-600 text-white'
+          isScreenSharing && 'animate-pulse'
         )}
         title={isScreenSharing ? 'Stop Screen Share' : 'Start Screen Share'}
       >
@@ -100,31 +88,29 @@ const MediaControls: React.FC<MediaControlsProps> = ({
 
       {/* Combined Recording */}
       <Button
-        variant="ghost"
+        variant={isRecording ? 'destructive' : 'outline'}
         size="sm"
         onClick={isRecording ? onStopRecording : onStartRecording}
         className={cn(
           'h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200',
-          isRecording
-            ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-            : 'bg-gray-700 hover:bg-gray-600 text-white'
+          isRecording && 'animate-pulse'
         )}
         title={isRecording ? 'Stop Recording' : 'Start Recording'}
       >
         <div
           className={cn(
             'w-3 h-3 rounded-full',
-            isRecording ? 'bg-white animate-pulse' : 'bg-red-400'
+            isRecording ? 'bg-destructive-foreground animate-pulse' : 'bg-destructive'
           )}
         />
       </Button>
 
       {/* Take Snapshot */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={onTakeSnapshot}
-        className="h-10 w-10 rounded-full p-0 bg-gray-700 hover:bg-gray-600 text-white hover:scale-105 transition-all duration-200"
+        className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
         title="Take Snapshot"
       >
         <ImageIcon size={18} />
@@ -133,10 +119,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
       {/* Download Recording */}
       {hasRecording && (
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
           onClick={onDownloadRecording}
-          className="h-10 w-10 rounded-full p-0 bg-green-500 hover:bg-green-600 text-white hover:scale-105 transition-all duration-200"
+          className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
           title="Download Recording"
         >
           <Download size={18} />
@@ -145,10 +131,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
 
       {/* Device Settings */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={onShowDeviceSelector}
-        className="h-10 w-10 rounded-full p-0 bg-gray-700 hover:bg-gray-600 text-white hover:scale-105 transition-all duration-200"
+        className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
         title="Device Settings"
       >
         <Settings size={18} />
@@ -156,10 +142,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
 
       {/* End Call */}
       <Button
-        variant="ghost"
+        variant="destructive"
         size="sm"
         onClick={onEndCall}
-        className="h-10 w-10 rounded-full p-0 bg-red-500 hover:bg-red-600 text-white hover:scale-105 transition-all duration-200"
+        className="h-10 w-10 rounded-full p-0 hover:scale-105 transition-all duration-200"
         title="End Call"
       >
         <Phone size={18} className="rotate-45" />

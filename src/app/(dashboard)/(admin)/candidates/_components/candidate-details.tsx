@@ -51,7 +51,7 @@ export function CandidateDetails({
                   {selectedUser.image ? (
                     <Image
                       src={selectedUser.image}
-                      alt={selectedUser.name}
+                      alt={selectedUser.name as string}
                       width={48}
                       height={48}
                       className="h-12 w-12 rounded-full object-cover"
@@ -59,13 +59,13 @@ export function CandidateDetails({
                   ) : (
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
                       <span className="text-lg font-medium text-muted-foreground">
-                        {selectedUser.name.charAt(0).toUpperCase()}
+                        {selectedUser?.name?.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold">{selectedUser.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                    <h3 className="font-semibold">{selectedUser?.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedUser?.email}</p>
                   </div>
                 </div>
 
@@ -75,8 +75,8 @@ export function CandidateDetails({
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Role</Label>
                     <div className="mt-1">
-                      <Badge variant={getRoleVariant(selectedUser.role)} className="capitalize">
-                        {selectedUser.role}
+                      <Badge variant={getRoleVariant(selectedUser?.role)} className="capitalize">
+                        {selectedUser?.role}
                       </Badge>
                     </div>
                   </div>
@@ -85,8 +85,8 @@ export function CandidateDetails({
                       Email Verified
                     </Label>
                     <div className="mt-1">
-                      <Badge variant={selectedUser.emailVerified ? 'success' : 'destructive'}>
-                        {selectedUser.emailVerified ? 'Verified' : 'Not Verified'}
+                      <Badge variant={selectedUser?.emailVerified ? 'success' : 'destructive'}>
+                        {selectedUser?.emailVerified ? 'Verified' : 'Not Verified'}
                       </Badge>
                     </div>
                   </div>
@@ -106,7 +106,7 @@ export function CandidateDetails({
                       Member Since
                     </Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedUser.createdAt), 'PPP')}
+                      {format(new Date(selectedUser?.createdAt), 'PPP')}
                     </p>
                   </div>
                   <div>
@@ -114,16 +114,16 @@ export function CandidateDetails({
                       Last Updated
                     </Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedUser.updatedAt), 'PPP')}
+                      {format(new Date(selectedUser?.updatedAt), 'PPP')}
                     </p>
                   </div>
                 </div>
 
-                {selectedUser.lastLoginAt && (
+                {selectedUser?.lastLoginAt && (
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Last Login</Label>
                     <p className="mt-1 text-sm">
-                      {format(new Date(selectedUser.lastLoginAt), 'PPP p')}
+                      {format(new Date(selectedUser?.lastLoginAt), 'PPP p')}
                     </p>
                   </div>
                 )}
@@ -131,7 +131,7 @@ export function CandidateDetails({
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
                   <p className="mt-1 text-sm font-mono text-xs bg-muted/50 p-2 rounded-md break-all">
-                    {selectedUser.id}
+                    {selectedUser?.id}
                   </p>
                 </div>
               </CardContent>
@@ -147,16 +147,16 @@ export function CandidateDetails({
                   <Label className="text-sm font-medium text-muted-foreground">
                     Account Status
                   </Label>
-                  <Badge variant={selectedUser.deleted ? 'destructive' : 'success'}>
-                    {selectedUser.deleted ? 'Deleted' : 'Active'}
+                  <Badge variant={selectedUser?.deleted ? 'destructive' : 'success'}>
+                    {selectedUser?.deleted ? 'Deleted' : 'Active'}
                   </Badge>
                 </div>
 
-                {selectedUser.deleted && selectedUser.deletedAt && (
+                {selectedUser?.deleted && selectedUser?.deletedAt && (
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Deleted On</Label>
                     <p className="mt-1 text-sm text-destructive">
-                      {format(new Date(selectedUser.deletedAt), 'PPP p')}
+                      {format(new Date(selectedUser?.deletedAt), 'PPP p')}
                     </p>
                   </div>
                 )}

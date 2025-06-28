@@ -208,7 +208,7 @@ export function DeviceCheck({
             >
               {cameraChecked ? (
                 <>
-                  <Check className="h-5 w-5 text-green-500" /> Camera Working
+                  <Check className="h-5 w-5 text-primary" /> Camera Working
                 </>
               ) : (
                 <>
@@ -252,7 +252,7 @@ export function DeviceCheck({
             >
               {microphoneChecked ? (
                 <>
-                  <Check className="h-5 w-5 text-green-500" /> Microphone Working
+                  <Check className="h-5 w-5 text-primary" /> Microphone Working
                 </>
               ) : isRecording ? (
                 <>

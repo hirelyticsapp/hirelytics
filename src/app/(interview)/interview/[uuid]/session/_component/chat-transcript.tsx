@@ -30,14 +30,10 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
-      <div className="p-2 lg:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <h3 className="text-sm lg:text-lg font-semibold text-gray-800 dark:text-white">
-          Live Transcript
-        </h3>
-        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-          Voice transcription results
-        </p>
+    <div className="h-full flex flex-col bg-card text-card-foreground overflow-hidden">
+      <div className="p-2 lg:p-4 border-b border-border flex-shrink-0">
+        <h3 className="text-sm lg:text-lg font-semibold text-foreground">Live Transcript</h3>
+        <p className="text-xs lg:text-sm text-muted-foreground">Voice transcription results</p>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -47,10 +43,10 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages }) => {
               <Card
                 key={message.id}
                 className={cn(
-                  'p-2 lg:p-3 max-w-[85%] lg:max-w-[80%] border-none shadow-sm',
+                  'p-2 lg:p-3 max-w-[85%] lg:max-w-[80%] border border-border shadow-sm',
                   message.type === 'user'
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white ml-auto'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white mr-auto'
+                    ? 'bg-primary text-primary-foreground ml-auto'
+                    : 'bg-muted text-muted-foreground mr-auto'
                 )}
               >
                 <div className="flex items-start justify-between mb-1">
@@ -58,8 +54,8 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages }) => {
                     className={cn(
                       'text-xs font-medium',
                       message.type === 'user'
-                        ? 'text-blue-100 dark:text-blue-100'
-                        : 'text-gray-600 dark:text-gray-300'
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
                     )}
                   >
                     {message.type === 'user' ? 'You' : 'AI Assistant'}
@@ -68,8 +64,8 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages }) => {
                     className={cn(
                       'text-xs',
                       message.type === 'user'
-                        ? 'text-blue-100 dark:text-blue-100'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'text-primary-foreground/70'
+                        : 'text-muted-foreground/70'
                     )}
                   >
                     {formatTime(message.timestamp)}
