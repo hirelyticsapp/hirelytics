@@ -1,4 +1,5 @@
 'use client';
+
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, MoreHorizontal, RefreshCw, SettingsIcon, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,8 +18,8 @@ import { Input } from '@/components/ui/input';
 import { IJob } from '@/db';
 import { useTableParams } from '@/hooks/use-table-params';
 
+import { UnifiedJobCreatePopup } from '../../jobs/_components/job-form/create-job-popup';
 import { useMockJobsQuery } from '../_hooks/use-mock-job-queries';
-import { CreateMockJobPopup } from './create-mock-job-popup';
 
 export default function MockJobTable() {
   const [refreshing, setRefreshing] = useState(false);
@@ -47,6 +48,10 @@ export default function MockJobTable() {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
+  };
+
+  const handleJobCreated = (jobId: string) => {
+    router.push(`/mock-jobs/${jobId}`);
   };
 
   const columns: ColumnDef<Partial<IJob>>[] = [
@@ -208,7 +213,7 @@ export default function MockJobTable() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <CreateMockJobPopup />
+          <UnifiedJobCreatePopup onJobCreated={handleJobCreated} />
         </div>
       </div>
 

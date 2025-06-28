@@ -20,7 +20,7 @@ import { useJobsQuery } from '@/hooks/use-job-queries';
 import { useTableParams } from '@/hooks/use-table-params';
 
 import InviteCandidateForm from './invite-candidate-form';
-import { CreateJobPopup } from './job-form/create-job-popup';
+import { UnifiedJobCreatePopup } from './job-form/create-job-popup';
 
 export default function JobTable() {
   const [candidateInviteOpen, setCandidateInviteOpen] = useState(false);
@@ -186,7 +186,7 @@ export default function JobTable() {
           <h1 className="text-3xl font-bold tracking-tight">Jobs Management</h1>
           <p className="text-muted-foreground">Manage your jobs</p>
         </div>
-        <CreateJobPopup onJobCreated={handleJobCreated} />
+        <UnifiedJobCreatePopup onJobCreated={handleJobCreated} />
       </div>
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
         <div className="flex-1">

@@ -3,10 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2, Plus, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Resolver, useForm } from 'react-hook-form';
 
+import { createMockInterview } from '@/actions/job';
 import { getIndustrySkills, getOrganizations } from '@/actions/organization';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -43,7 +46,7 @@ import { currencies } from '@/lib/constants/job-constants';
 import { type BasicJobDetails, basicJobDetailsSchema } from '@/lib/schemas/job-schemas';
 import { cn } from '@/lib/utils';
 
-interface CreateJobPopupProps {
+interface UnifiedJobCreatePopupProps {
   onJobCreated: (jobId: string) => void;
 }
 
@@ -52,15 +55,22 @@ interface Organization {
   name: string;
 }
 
-export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
+type JobType = 'regular' | 'mock';
+
+export function UnifiedJobCreatePopup({ onJobCreated }: UnifiedJobCreatePopupProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [jobType, setJobType] = useState<JobType>('regular');
   const [skillInput, setSkillInput] = useState('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Initialize the create job mutation
+  const isAdmin = user?.role === 'admin';
+
+  // Initialize the create job mutation for regular jobs
   const createJobMutation = useCreateJobMutation();
 
   const form = useForm<BasicJobDetails>({
@@ -74,6 +84,7 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
       location: '',
       skills: [],
       status: 'draft',
+      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   });
 
@@ -93,8 +104,10 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
       }
     };
 
-    fetchOrganizations();
-  }, []);
+    if (open) {
+      fetchOrganizations();
+    }
+  }, [open]);
 
   // Fetch skills when industry changes
   useEffect(() => {
@@ -151,35 +164,65 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
 
   const onSubmit = async (data: BasicJobDetails) => {
     try {
-      console.log('Creating job with basic details:', data);
+      setIsCreating(true);
 
-      // Pass the current user's ID as the recruiter
-      const result = await createJobMutation.mutateAsync({
-        jobData: data,
-        recruiterId: user?.id,
-      });
-
-      if (result.success && result.data) {
-        setOpen(false);
-        form.reset();
-        onJobCreated(result.data.id);
+      if (jobType === 'mock') {
+        // Create mock job
+        const result = await createMockInterview(data, user?.id);
+        if (result.success && result.jobId) {
+          setOpen(false);
+          form.reset();
+          router.push(`/mock-jobs/${result.jobId}`);
+        } else {
+          console.error('Failed to create mock job:', result.error);
+        }
       } else {
-        console.error('Failed to create job:', result.error);
-        // You might want to show a toast or error message here
+        // Create regular job
+        console.log('Creating regular job with basic details:', data);
+        const result = await createJobMutation.mutateAsync({
+          jobData: data,
+          recruiterId: user?.id,
+        });
+
+        if (result.success && result.data) {
+          setOpen(false);
+          form.reset();
+          onJobCreated(result.data.id);
+        } else {
+          console.error('Failed to create job:', result.error);
+        }
       }
     } catch (error) {
       console.error('Error creating job:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
+  const resetForm = () => {
+    form.reset();
+    setJobType('regular');
+    setSkillInput('');
+    setAvailableSkills([]);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
           Create New Job
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Job</DialogTitle>
@@ -187,15 +230,55 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Job Type Selection - Only for Admin */}
+            {isAdmin && (
+              <div className="space-y-3">
+                <FormLabel>Job Type</FormLabel>
+                <RadioGroup
+                  value={jobType}
+                  onValueChange={(value: JobType) => setJobType(value)}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="regular" id="regular" />
+                    <label htmlFor="regular" className="text-sm font-medium cursor-pointer">
+                      Regular Job
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mock" id="mock" />
+                    <label htmlFor="mock" className="text-sm font-medium cursor-pointer">
+                      Mock Interview
+                    </label>
+                  </div>
+                </RadioGroup>
+                {jobType === 'mock' && (
+                  <p className="text-sm text-muted-foreground">
+                    Mock interviews are practice sessions for candidates to improve their interview
+                    skills.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Job Title *</FormLabel>
+                    <FormLabel>
+                      {jobType === 'mock' ? 'Mock Interview Title' : 'Job Title'} *
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Senior Software Engineer" {...field} />
+                      <Input
+                        placeholder={
+                          jobType === 'mock'
+                            ? 'e.g. Frontend Developer Practice Interview'
+                            : 'e.g. Senior Software Engineer'
+                        }
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -276,7 +359,12 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
                   <FormItem>
                     <FormLabel>Salary</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. 80,000 - 120,000" {...field} />
+                      <Input
+                        placeholder={
+                          jobType === 'mock' ? 'e.g. Practice Interview' : 'e.g. 80,000 - 120,000'
+                        }
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -420,18 +508,18 @@ export function CreateJobPopup({ onJobCreated }: CreateJobPopupProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={createJobMutation.isPending}
+                disabled={isCreating || createJobMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createJobMutation.isPending}>
-                {createJobMutation.isPending ? (
+              <Button type="submit" disabled={isCreating || createJobMutation.isPending}>
+                {isCreating || createJobMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating...
                   </>
                 ) : (
-                  'Create Job'
+                  `Create ${jobType === 'mock' ? 'Mock Job' : 'Job'}`
                 )}
               </Button>
             </div>
