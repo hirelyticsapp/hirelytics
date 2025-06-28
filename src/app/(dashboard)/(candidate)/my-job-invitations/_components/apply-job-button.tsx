@@ -1,6 +1,6 @@
 'use client';
 import { useMutation } from '@tanstack/react-query';
-import { Check } from 'lucide-react';
+import { FastForwardIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -38,8 +38,8 @@ export default function ApplyJobInvitationButton({
       className="flex-1"
       onClick={() => acceptInvitationMutation.mutate()}
     >
-      <Check className="h-3 w-3 mr-1" />
-      Accept
+      <FastForwardIcon className="h-3 w-3 mr-1" />
+      Apply
     </LoadingButton>
   );
 }
