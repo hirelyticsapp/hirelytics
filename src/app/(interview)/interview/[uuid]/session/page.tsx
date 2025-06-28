@@ -5,14 +5,15 @@ import { getJobApplicationByUuid } from '@/actions/job-application';
 import VideoCall from './_component/video-call';
 
 interface InterviewPageProps {
-  params: {
+  params: Promise<{
     uuid: string;
-  };
+  }>;
 }
 
 export default async function InterviewPage({ params }: InterviewPageProps) {
   try {
-    const applicationData = await getJobApplicationByUuid(params.uuid);
+    const { uuid } = await params;
+    const applicationData = await getJobApplicationByUuid(uuid);
 
     if (!applicationData) {
       notFound();

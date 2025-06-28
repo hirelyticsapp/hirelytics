@@ -506,7 +506,15 @@ export async function getJobApplicationByUuid(uuid: string) {
       benefits: application.jobDetails.benefits,
       requirements: application.jobDetails.requirements,
     },
-    sessionInstruction: application.sessionInstruction ? application.sessionInstruction : undefined,
+    sessionInstruction: application.sessionInstruction || {
+      screenMonitoring: false,
+      screenMonitoringMode: 'photo' as const,
+      screenMonitoringInterval: 30,
+      cameraMonitoring: true,
+      cameraMonitoringMode: 'photo' as const,
+      cameraMonitoringInterval: 60,
+      duration: 30,
+    },
     instructionsForAi: application.instructionsForAi
       ? {
           instruction: application.instructionsForAi.instruction,
