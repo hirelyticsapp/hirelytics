@@ -1,0 +1,422 @@
+# Hirelytics - AI-Powered Interview Platform
+
+> llms.txt - Context file for Large Language Model agents
+>
+> This file contains a comprehensive overview of the Hirelytics codebase,
+> including architecture, components, database schemas, API endpoints,
+> and key features for LLM-powered development assistance.
+>
+> GitHub Copilot: Use this file as primary context for code suggestions
+> and maintain consistency with the patterns described here.
+
+## Project Overview
+
+Hirelytics is a comprehensive AI-powered interview platform built with Next.js 14, TypeScript, MongoDB, and TailwindCSS. The platform enables organizations to conduct automated video interviews with AI assistance, candidate monitoring, and comprehensive analytics.
+
+### Tech Stack
+
+- **Frontend**: Next.js 14, React 18, TypeScript, TailwindCSS, Shadcn/ui
+- **Backend**: Next.js API Routes, MongoDB with Mongoose
+- **Authentication**: Custom JWT-based auth with OTP verification
+- **State Management**: TanStack Query (React Query)
+- **Validation**: Zod schemas
+- **Styling**: TailwindCSS with Shadcn/ui components
+- **File Storage**: AWS S3 integration
+- **Package Manager**: pnpm
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Authentication routes
+│   ├── (dashboard)/       # Dashboard routes (admin, recruiter, candidate)
+│   ├── (interview)/       # Interview session routes
+│   ├── api/               # API endpoints
+│   ├── globals.css        # Global styles
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable UI components
+├── context/              # React contexts
+├── db/                   # Database configuration and schemas
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility functions and configurations
+├── providers/            # React providers
+└── schema/              # Validation schemas
+```
+
+## User Roles & Authentication
+
+### User Roles
+
+1. **Admin**: Platform administration, user management, analytics
+2. **Recruiter**: Job creation, candidate management, interview oversight
+3. **Candidate**: Interview participation, profile management
+
+### Authentication Flow
+
+- **OTP-based authentication** for all user types
+- Email verification required for account activation
+- JWT tokens for session management
+- Role-based access control (RBAC)
+- Separate login flows for admin, recruiter, and candidate
+
+### Key Auth Endpoints
+
+- `POST /api/auth/admin/send-email-otp` - Admin OTP generation
+- `POST /api/auth/recruiter/login` - Recruiter login
+- `POST /api/auth/candidate/login` - Candidate login
+- `POST /api/auth/candidate/signup` - Candidate registration
+- `POST /api/auth/recruiter/portal-access-request` - Recruiter access request
+
+## Database Schema
+
+### Core Models
+
+#### User (`src/db/schema/user.ts`)
+
+```typescript
+interface IUser {
+  name: string;
+  email: string;
+  role: 'admin' | 'recruiter' | 'user';
+  emailVerified: boolean;
+  profilePicture?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### Job (`src/db/schema/job.ts`)
+
+```typescript
+interface IJob {
+  title: string;
+  description: string;
+  requirements?: string;
+  benefits?: string;
+  skills: string[];
+  location: string;
+  industry: string;
+  status: 'draft' | 'published' | 'expired' | 'deleted';
+  recruiter: ObjectId; // Reference to User
+  interviewConfig: IInterviewConfig;
+  questionsConfig: IQuestionConfig;
+  organization?: ObjectId;
+}
+
+interface IInterviewConfig {
+  duration: number; // minutes
+  instructions?: string;
+  difficultyLevel: 'easy' | 'normal' | 'hard' | 'expert' | 'advanced';
+  screenMonitoring: boolean;
+  screenMonitoringMode: 'photo' | 'video';
+  screenMonitoringInterval?: 30 | 60;
+  cameraMonitoring: boolean;
+  cameraMonitoringMode: 'photo' | 'video';
+  cameraMonitoringInterval?: 30 | 60;
+}
+
+interface IQuestionConfig {
+  mode: 'manual' | 'ai-mode';
+  totalQuestions: number;
+  categoryConfigs: IQuestionCategoryConfig[];
+  questionTypes: string[];
+  questions?: IQuestion[];
+}
+```
+
+#### JobApplication (`src/db/schema/job-application.ts`)
+
+```typescript
+interface IJobApplication {
+  uuid: string; // Unique identifier for public access
+  jobId: ObjectId;
+  userId: ObjectId;
+  preferredLanguage: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  monitoringImages: {
+    camera: Array<{ s3Key: string; timestamp: Date }>;
+    screen: Array<{ s3Key: string; timestamp: Date }>;
+  };
+  candidate: { email: string; name: string };
+  jobDetails: { title: string; description: string; skills: string[] };
+  sessionInstruction: IInterviewConfig;
+  instructionsForAi: {
+    instruction: string;
+    difficultyLevel: string;
+    questionMode: string;
+    totalQuestions: number;
+    categoryConfigs: IQuestionCategoryConfig[];
+    questions?: IQuestion[];
+  };
+}
+```
+
+#### Organization (`src/db/schema/organization.ts`)
+
+```typescript
+interface IOrganization {
+  name: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  logo?: string;
+  createdBy: ObjectId;
+  members: Array<{
+    userId: ObjectId;
+    roles: Array<'owner' | 'member'>;
+    joinedAt: Date;
+  }>;
+}
+```
+
+## API Architecture
+
+### Authentication APIs (`/api/auth/`)
+
+- **Admin**: Central login with dual-OTP verification
+- **Recruiter**: Email-based OTP login, portal access requests
+- **Candidate**: Email-based OTP login and signup
+
+### Core APIs (`/api/v1/`)
+
+- **Users**: CRUD operations for user management
+- **Admins**: Admin-specific user listing
+- **Recruiters**: Recruiter-specific user listing
+
+### AI APIs (`/api/ai/`)
+
+- **Generate Questions**: AI-powered interview question generation
+- **Generate Description**: AI-powered job description generation
+
+### Key API Patterns
+
+- Consistent error handling with standard HTTP status codes
+- Zod schema validation for all inputs
+- MongoDB connection handling in each route
+- JWT-based authentication middleware
+- Paginated data responses for listings
+
+## Interview System
+
+### Interview Flow
+
+1. **Device Check**: Camera and microphone testing
+2. **Interview Start**: AI-powered session initialization
+3. **Question Delivery**: Dynamic question progression
+4. **Monitoring**: Real-time screen and camera monitoring
+5. **Chat Transcript**: Live conversation recording
+6. **Session Completion**: Automatic wrap-up and data storage
+
+### Monitoring Features
+
+- **Screen Monitoring**: Photo/video capture at intervals
+- **Camera Monitoring**: Candidate behavior tracking
+- **Chat Transcript**: Real-time conversation logging
+- **Device Detection**: Hardware compatibility checking
+
+### AI Integration
+
+- **Question Generation**: Context-aware interview questions
+- **Difficulty Adaptation**: Dynamic difficulty adjustment
+- **Industry-Specific**: Tailored questions by job type
+- **Multi-Language**: Support for multiple languages
+
+## Key Components
+
+### Authentication Components
+
+- `CandidateLoginForm`: Multi-step login with OTP
+- `RecruiterLoginForm`: Professional recruiter authentication
+- `CentralLoginForm`: Admin dual-OTP verification
+- `AuthCard`: Reusable authentication wrapper
+
+### Interview Components
+
+- `InterviewClient`: Main interview orchestrator
+- `DeviceCheck`: Hardware testing interface
+- `InterviewStartScreen`: Pre-interview preparation
+- `ChatTranscript`: Real-time conversation display
+- `VideoCall`: Interview session management
+
+### Dashboard Components
+
+- `JobForm`: Multi-step job creation wizard
+- `InterviewConfigStep`: Interview settings configuration
+- `QuestionsConfigStep`: Question management interface
+- `RecruiterDetails`: User profile management
+
+### Form Management
+
+- Extensive use of `react-hook-form` with Zod validation
+- Multi-step form patterns with state persistence
+- Real-time validation and error handling
+- Type-safe form submissions
+
+## Business Logic
+
+### Job Creation Workflow
+
+1. **Basic Details**: Title, description, skills, location
+2. **Job Description**: AI-assisted content generation
+3. **Interview Configuration**: Duration, monitoring settings
+4. **Questions Setup**: Manual or AI-generated questions
+5. **Review & Publish**: Final validation and activation
+
+### Interview Question System
+
+- **Question Types**: Technical, behavioral, analytical, clinical
+- **AI Generation**: Context-aware question creation
+- **Manual Override**: Custom question input
+- **Category Configuration**: Balanced question distribution
+- **Difficulty Scaling**: Progressive difficulty adjustment
+
+### Monitoring & Analytics
+
+- **Real-time Monitoring**: Live interview oversight
+- **Performance Metrics**: Interview success rates
+- **Candidate Analytics**: Behavior pattern analysis
+- **Recruiter Dashboard**: Comprehensive hiring insights
+
+## Security Features
+
+- **Input Validation**: Comprehensive Zod schema validation
+- **Authentication**: JWT-based secure sessions
+- **Authorization**: Role-based access control
+- **Data Protection**: Encrypted sensitive information
+- **File Security**: S3 signed URL for secure file access
+- **Monitoring**: Real-time security event tracking
+
+## File Storage & Media
+
+### S3 Integration
+
+- **Signed URLs**: Secure file upload/download
+- **Monitoring Images**: Camera and screen captures
+- **Profile Pictures**: User avatar management
+- **Document Storage**: Resume and portfolio files
+
+### Media Handling
+
+- **Video Processing**: Interview recording management
+- **Image Optimization**: Efficient media delivery
+- **Batch Operations**: Bulk file processing
+- **CDN Integration**: Global content delivery
+
+## State Management
+
+### TanStack Query Integration
+
+- **Server State**: Efficient API data caching
+- **Optimistic Updates**: Smooth user interactions
+- **Background Refetching**: Automatic data synchronization
+- **Error Boundaries**: Graceful error handling
+- **Infinite Queries**: Paginated data loading
+
+### Custom Hooks
+
+- `useAuth`: Authentication state management
+- `useJobQueries`: Job-related data operations
+- `useDataTable`: Table state and pagination
+- `useMobile`: Responsive design utilities
+
+## Performance Optimizations
+
+- **Code Splitting**: Dynamic route-based splitting
+- **Image Optimization**: Next.js Image component
+- **Caching Strategy**: Multi-layer caching approach
+- **Database Indexing**: Optimized query performance
+- **Bundle Analysis**: Continuous size monitoring
+
+## Development Patterns
+
+### Code Organization
+
+- **Feature-based Structure**: Logical component grouping
+- **Shared Components**: Reusable UI elements
+- **Type Safety**: Comprehensive TypeScript coverage
+- **Schema Validation**: Runtime type checking
+- **Error Boundaries**: Robust error handling
+
+### Testing Strategy
+
+- **Component Testing**: Isolated unit tests
+- **Integration Testing**: API endpoint validation
+- **E2E Testing**: Complete user flow verification
+- **Performance Testing**: Load and stress testing
+
+## Deployment & Infrastructure
+
+### Environment Configuration
+
+- **Development**: Local development setup
+- **Staging**: Pre-production testing
+- **Production**: Scalable production deployment
+- **Environment Variables**: Secure configuration management
+
+### Monitoring & Observability
+
+- **Error Tracking**: Comprehensive error logging
+- **Performance Monitoring**: Real-time metrics
+- **User Analytics**: Behavior tracking
+- **System Health**: Infrastructure monitoring
+
+## Key Libraries & Dependencies
+
+### Core Dependencies
+
+- `next@14.2.16`: React framework
+- `react@18.3.1`: UI library
+- `typescript@5.6.3`: Type safety
+- `mongoose@8.8.2`: MongoDB ODM
+- `@tanstack/react-query@5.59.20`: State management
+- `zod@3.23.8`: Schema validation
+- `tailwindcss@3.4.15`: Styling framework
+
+### UI Components
+
+- `@radix-ui/*`: Accessible component primitives
+- `shadcn/ui`: Pre-built component library
+- `lucide-react`: Icon library
+- `framer-motion`: Animation library
+
+### Development Tools
+
+- `eslint@9.15.0`: Code linting
+- `prettier@3.3.3`: Code formatting
+- `husky@9.1.7`: Git hooks
+- `lint-staged@15.2.10`: Pre-commit validation
+
+## Common Development Tasks
+
+### Adding New Features
+
+1. Create TypeScript interfaces in `@types/`
+2. Define Zod schemas in `lib/schemas/`
+3. Implement database models in `db/schema/`
+4. Create API endpoints in `app/api/`
+5. Build UI components in `components/`
+6. Add routing in `app/` directories
+
+### Database Operations
+
+- Use Mongoose models with TypeScript interfaces
+- Implement proper error handling and validation
+- Follow pagination patterns for large datasets
+- Use proper indexing for query optimization
+
+### Authentication Implementation
+
+- Follow OTP-based authentication patterns
+- Implement role-based access control
+- Use JWT tokens for session management
+- Handle token refresh and expiration
+
+### UI Development
+
+- Use Shadcn/ui components as base
+- Follow responsive design patterns
+- Implement proper loading and error states
+- Use TailwindCSS for styling consistency
+
+This context provides comprehensive coverage of the Hirelytics platform architecture, enabling LLM agents to understand and contribute to the codebase effectively.

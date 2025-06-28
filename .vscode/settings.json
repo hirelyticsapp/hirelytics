@@ -41,5 +41,49 @@
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // GitHub Copilot settings
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": true,
+    "scminput": true
+  },
+  "github.copilot.advanced": {
+    "secret_key": "github.copilot.enable",
+    "length": 500,
+    "temperature": "",
+    "top_p": "",
+    "stop": {
+      "*": ["\n\n\n"]
+    },
+    "indentationMode": {
+      "*": "space",
+      "makefile": "tab"
+    },
+    "inlineSuggestCount": 3
+  },
+  // Git commit message settings
+  "git.inputValidation": true,
+  "git.inputValidationLength": 200,
+  "git.inputValidationSubjectLength": 200,
+  "scm.inputFontFamily": "SF Mono, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+  // Include context files for Copilot
+  "files.associations": {
+    "llms.txt": "markdown",
+    "*.md": "markdown"
+  },
+  // Copilot context configuration
+  "github.copilot.chat.useProjectTemplates": true,
+  "github.copilot.chat.experimentalCodeGeneration": true,
+  "github.copilot.referencesInChat": true,
+  // Workspace trust for Copilot context
+  "security.workspace.trust.untrustedFiles": "open",
+  // Enhanced context inclusion
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true
   }
 }

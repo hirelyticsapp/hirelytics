@@ -1,0 +1,48 @@
+# Files to exclude from GitHub Copilot context
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+.pnp/
+
+# Environment files with secrets
+.env*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Runtime files
+*.pid
+*.seed
+*.tgz
+
+# Database files
+*.sqlite
+*.db
+
+# Temporary files
+.tmp/
+temp/
+
+# Certificate files
+certificates/
+*.pem
+*.key
+*.crt
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+
+# Compiled TypeScript
+*.tsbuildinfo

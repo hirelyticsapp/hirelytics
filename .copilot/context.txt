@@ -1,0 +1,40 @@
+# Always include these files as context
+**/.copilot/*.md
+.copilot/llms.txt
+.copilot/PROJECT_CONTEXT.md
+.copilot/DEVELOPMENT_INSTRUCTIONS.md
+.copilot/schema-context.md
+.copilot/code-flow-context.md
+.copilot/api-integration-context.md
+.copilot/validation-context.md
+.copilot/interview-system-context.md
+.copilot/component-patterns-context.md
+.copilot/commit-context.md
+.copilot/git-workflow-reference.md
+package.json
+tsconfig.json
+next.config.ts
+src/env.ts
+commitlint.config.mjs
+
+# Include key schema and type files
+src/db/schema/**/*.ts
+src/@types/**/*.ts
+src/lib/schemas/**/*.ts
+
+# Include important configuration files
+src/lib/constants/**/*.ts
+src/lib/utils/**/*.ts
+src/lib/auth/**/*.ts
+
+# Include hook patterns for interview system
+src/app/(interview)/**/hooks/**/*.ts
+src/hooks/**/*.ts
+src/context/**/*.tsx
+
+# Include component patterns
+src/components/ui/**/*.tsx
+src/components/data-table/**/*.tsx
+
+# Include action patterns
+src/actions/**/*.ts
