@@ -10,6 +10,8 @@ interface MonitoringPanelProps {
   applicationId: string;
   cameraMonitoring: boolean;
   screenMonitoring: boolean;
+  cameraMonitoringMode?: 'photo' | 'video'; // Add monitoring mode
+  screenMonitoringMode?: 'photo' | 'video'; // Add monitoring mode
   cameraInterval?: number; // in seconds
   screenInterval?: number; // in seconds
 }
@@ -18,6 +20,8 @@ export function MonitoringPanel({
   applicationId,
   cameraMonitoring,
   screenMonitoring,
+  cameraMonitoringMode = 'photo',
+  screenMonitoringMode = 'photo',
   cameraInterval = 30,
   screenInterval = 30,
 }: MonitoringPanelProps) {
@@ -104,14 +108,32 @@ export function MonitoringPanel({
 
     const intervals: NodeJS.Timeout[] = [];
 
-    if (cameraMonitoring && cameraInterval) {
+    // Camera monitoring - Photo mode only
+    if (cameraMonitoring && cameraMonitoringMode === 'photo' && cameraInterval) {
       const cameraIntervalId = setInterval(captureCameraImage, cameraInterval * 1000);
       intervals.push(cameraIntervalId);
     }
 
-    if (screenMonitoring && screenInterval) {
+    // Screen monitoring - Photo mode only
+    if (screenMonitoring && screenMonitoringMode === 'photo' && screenInterval) {
       const screenIntervalId = setInterval(captureScreenImage, screenInterval * 1000);
       intervals.push(screenIntervalId);
+    }
+
+    // Video monitoring - TODO: Implement automatic video recording
+    if (cameraMonitoring && cameraMonitoringMode === 'video') {
+      console.log('Camera video monitoring mode - Implementation pending');
+      console.log('This will automatically record and upload video segments to the server');
+      // TODO: Implement continuous video recording for camera monitoring
+      // - Start recording in chunks (e.g., 5-minute segments)
+      // - Automatically upload each chunk to the server
+      // - Handle recording failures and retries
+    }
+
+    if (screenMonitoring && screenMonitoringMode === 'video') {
+      console.log('Screen video monitoring mode - Implementation pending');
+      console.log('This will automatically record and upload video segments to the server');
+      // TODO: Implement continuous video recording for screen monitoring
     }
 
     return () => {
@@ -120,7 +142,9 @@ export function MonitoringPanel({
   }, [
     isRecording,
     cameraMonitoring,
+    cameraMonitoringMode,
     screenMonitoring,
+    screenMonitoringMode,
     cameraInterval,
     screenInterval,
     captureCameraImage,
@@ -176,10 +200,16 @@ export function MonitoringPanel({
               Status: {isRecording ? 'Recording' : 'Stopped'}
             </p>
             {cameraMonitoring && (
-              <p className="text-xs text-muted-foreground">Camera: Every {cameraInterval}s</p>
+              <p className="text-xs text-muted-foreground">
+                Camera: {cameraMonitoringMode} mode
+                {cameraMonitoringMode === 'photo' ? ` - Every ${cameraInterval}s` : ' - Continuous'}
+              </p>
             )}
             {screenMonitoring && (
-              <p className="text-xs text-muted-foreground">Screen: Every {screenInterval}s</p>
+              <p className="text-xs text-muted-foreground">
+                Screen: {screenMonitoringMode} mode
+                {screenMonitoringMode === 'photo' ? ` - Every ${screenInterval}s` : ' - Continuous'}
+              </p>
             )}
           </div>
 
@@ -202,10 +232,20 @@ export function MonitoringPanel({
         <div className="rounded-lg bg-muted p-3 text-sm">
           <p className="font-medium">Monitoring Settings:</p>
           <ul className="mt-1 space-y-1 text-muted-foreground">
-            <li>• Camera Monitoring: {cameraMonitoring ? 'Enabled' : 'Disabled'}</li>
-            <li>• Screen Monitoring: {screenMonitoring ? 'Enabled' : 'Disabled'}</li>
-            <li>• Images are automatically uploaded to secure storage</li>
-            <li>• All monitoring data is encrypted and access-controlled</li>
+            <li>
+              {'• '}Camera Monitoring:{' '}
+              {cameraMonitoring ? `Enabled (${cameraMonitoringMode})` : 'Disabled'}
+            </li>
+            <li>
+              {'• '}Screen Monitoring:{' '}
+              {screenMonitoring ? `Enabled (${screenMonitoringMode})` : 'Disabled'}
+            </li>
+            <li>{'• '}Images/videos are automatically uploaded to secure storage</li>
+            <li>{'• '}All monitoring data is encrypted and access-controlled</li>
+            {(cameraMonitoring && cameraMonitoringMode === 'video') ||
+            (screenMonitoring && screenMonitoringMode === 'video') ? (
+              <li className="text-orange-600">{'• '}Video monitoring implementation pending</li>
+            ) : null}
           </ul>
         </div>
       </CardContent>

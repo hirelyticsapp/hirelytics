@@ -144,7 +144,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
   const { transcriptMessages, stopRecognition } = useSpeechRecognition(isInterviewStarted, isMuted);
 
-  const { takeSnapshot, canvasRef } = useSnapshot();
+  const {
+    takeSnapshot,
+    takeMonitoringSnapshot,
+    canvasRef,
+    isUploading: isUploadingSnapshot,
+    uploadError: snapshotUploadError,
+  } = useSnapshot();
 
   // Update video refs when streams change
   useEffect(() => {
@@ -195,39 +201,46 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
       sessionInstruction.screenMonitoringMode === 'photo'
     ) {
       const interval = sessionInstruction.screenMonitoringInterval || 30;
-      const screenMonitoringInterval = setInterval(() => {
+      const screenMonitoringInterval = setInterval(async () => {
         console.log(`Screen monitoring snapshot taken at: ${new Date().toISOString()}`);
         if (screenRef.current) {
-          takeSnapshot(screenRef, `screen-monitor-${Date.now()}.jpg`);
+          await takeMonitoringSnapshot(screenRef, applicationData.id, 'screen');
         }
       }, interval * 1000);
       intervals.push(screenMonitoringInterval);
     }
 
-    // Camera monitoring
+    // Camera monitoring - Photo mode
     if (
       sessionInstruction.cameraMonitoring &&
       sessionInstruction.cameraMonitoringMode === 'photo'
     ) {
       const interval = sessionInstruction.cameraMonitoringInterval || 30;
-      const cameraMonitoringInterval = setInterval(() => {
+      const cameraMonitoringInterval = setInterval(async () => {
         console.log(`Camera monitoring snapshot taken at: ${new Date().toISOString()}`);
         if (videoRef.current) {
-          takeSnapshot(videoRef, `camera-monitor-${Date.now()}.jpg`);
+          await takeMonitoringSnapshot(videoRef, applicationData.id, 'camera');
         }
       }, interval * 1000);
       intervals.push(cameraMonitoringInterval);
     }
 
-    // Video monitoring (continuous recording)
+    // Camera monitoring - Video mode (TODO: Implementation pending)
     if (
       sessionInstruction.cameraMonitoring &&
       sessionInstruction.cameraMonitoringMode === 'video'
     ) {
-      console.log('Starting continuous camera recording for monitoring');
-      startCameraRecording(mediaStream);
+      // TODO: Implement automatic video recording and upload for camera monitoring
+      console.log('Camera video monitoring mode - Implementation pending');
+      console.log('This will automatically record and upload video segments to the server');
+      // Future implementation:
+      // - Start continuous recording in chunks (e.g., 5-minute segments)
+      // - Automatically upload each chunk to the server
+      // - Handle recording failures and retries
+      // - Optimize video compression and quality
     }
 
+    // Screen monitoring - Video mode
     if (
       sessionInstruction.screenMonitoring &&
       sessionInstruction.screenMonitoringMode === 'video' &&
@@ -245,7 +258,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     applicationData,
     mediaStream,
     screenStream,
-    takeSnapshot,
+    takeMonitoringSnapshot,
     startCameraRecording,
     startScreenRecording,
     videoRef,
@@ -445,6 +458,23 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
                     </Button>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Monitoring Status Indicators */}
+            {(applicationData.sessionInstruction?.cameraMonitoring ||
+              applicationData.sessionInstruction?.screenMonitoring) && (
+              <div className="absolute top-4 right-4 flex flex-col space-y-2 z-10">
+                {isUploadingSnapshot && (
+                  <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                    Uploading monitoring data...
+                  </div>
+                )}
+                {snapshotUploadError && (
+                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                    Upload error: {snapshotUploadError}
+                  </div>
+                )}
               </div>
             )}
           </div>
