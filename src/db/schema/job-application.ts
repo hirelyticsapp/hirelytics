@@ -26,8 +26,8 @@ export interface IQuestionCategoryConfig {
 
 export interface IJobApplication extends Document {
   uuid: string; // Unique identifier for the application
-  jobId: ObjectId | string;
-  userId: ObjectId | string; // User ID reference
+  jobId: ObjectId; // Job ID reference as ObjectId
+  userId: ObjectId; // User ID reference as ObjectId
   preferredLanguage: string;
   status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
   monitoringImages?: MonitoringImage;

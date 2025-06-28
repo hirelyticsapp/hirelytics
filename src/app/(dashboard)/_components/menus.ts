@@ -1,6 +1,7 @@
 import {
   IconBasketQuestion,
   IconBriefcase,
+  IconBriefcaseFilled,
   IconBuilding,
   IconDashboard,
   IconUsers,
@@ -64,6 +65,12 @@ const adminNavigationMenus = [
         title: 'Jobs',
         url: '/jobs',
         icon: IconBriefcase,
+        color: 'text-orange-500',
+      },
+      {
+        title: 'Applied Jobs',
+        url: '/applied-jobs',
+        icon: IconBriefcaseFilled,
         color: 'text-orange-500',
       },
       {
