@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 interface JobApplicationDetail {
   id: string;
   uuid: string;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'in_progress' | 'completed';
   preferredLanguage: string;
   candidate: {
     email: string;

@@ -27,6 +27,44 @@ export interface IInterviewConversation {
   timestamp: Date;
   phase?: string;
   questionIndex?: number;
+  questionId?: string;
+  categoryType?: string;
+  isRepeat?: boolean;
+  isClarification?: boolean;
+}
+
+export interface IInterviewState {
+  currentPhase:
+    | 'introduction'
+    | 'candidate_intro'
+    | 'questions'
+    | 'final_questions'
+    | 'closing'
+    | 'completed';
+  currentQuestionIndex: number;
+  totalQuestions: number;
+  questionsAskedByCategory: Record<string, number>;
+  maxQuestionsPerCategory: Record<string, number>;
+  completedCategories: string[];
+  currentCategory?: string;
+  questionHistory: Array<{
+    questionId: string;
+    categoryType: string;
+    question: string;
+    asked: boolean;
+    answered: boolean;
+    isRepeat: boolean;
+    isClarification: boolean;
+    timestamp: Date;
+    userResponse?: string;
+    feedback?: string;
+  }>;
+  clarificationRequests: number;
+  actualQuestionsAsked: number;
+  startedAt?: Date;
+  lastActivityAt?: Date;
+  estimatedCompletion?: Date;
+  isWaitingForFinalQuestions?: boolean;
 }
 
 export interface IQuestionCategoryConfig {
@@ -39,9 +77,10 @@ export interface IJobApplication extends Document {
   jobId: ObjectId; // Job ID reference as ObjectId
   userId: ObjectId; // User ID reference as ObjectId
   preferredLanguage: string;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'in_progress' | 'completed';
   monitoringImages?: MonitoringImage;
   interviewConversation?: IInterviewConversation[]; // Store all AI questions and user answers
+  interviewState?: IInterviewState; // Track interview progress and state
   candidate: {
     email: string; // Email of the candidate
     name: string; // Name of the candidate
@@ -82,7 +121,7 @@ const JobApplicationSchema = new Schema<IJobApplication>(
     preferredLanguage: { type: String, required: true },
     status: {
       type: String,
-      enum: ['pending', 'reviewed', 'accepted', 'rejected'],
+      enum: ['pending', 'reviewed', 'accepted', 'rejected', 'in_progress', 'completed'],
       default: 'pending',
     },
     monitoringImages: {
@@ -111,8 +150,51 @@ const JobApplicationSchema = new Schema<IJobApplication>(
         timestamp: { type: Date, required: true },
         phase: { type: String },
         questionIndex: { type: Number },
+        questionId: { type: String },
+        categoryType: { type: String },
+        isRepeat: { type: Boolean, default: false },
+        isClarification: { type: Boolean, default: false },
       },
     ],
+    interviewState: {
+      currentPhase: {
+        type: String,
+        enum: [
+          'introduction',
+          'candidate_intro',
+          'questions',
+          'final_questions',
+          'closing',
+          'completed',
+        ],
+      },
+      currentQuestionIndex: { type: Number, default: 0 },
+      totalQuestions: { type: Number, default: 5 },
+      questionsAskedByCategory: { type: Map, of: Number, default: {} },
+      maxQuestionsPerCategory: { type: Map, of: Number, default: {} },
+      completedCategories: [{ type: String }],
+      currentCategory: { type: String },
+      questionHistory: [
+        {
+          questionId: { type: String, required: true },
+          categoryType: { type: String, required: true },
+          question: { type: String, required: true },
+          asked: { type: Boolean, default: false },
+          answered: { type: Boolean, default: false },
+          isRepeat: { type: Boolean, default: false },
+          isClarification: { type: Boolean, default: false },
+          timestamp: { type: Date, required: true },
+          userResponse: { type: String },
+          feedback: { type: String },
+        },
+      ],
+      clarificationRequests: { type: Number, default: 0 },
+      actualQuestionsAsked: { type: Number, default: 0 },
+      startedAt: { type: Date },
+      lastActivityAt: { type: Date },
+      estimatedCompletion: { type: Date },
+      isWaitingForFinalQuestions: { type: Boolean, default: false },
+    },
     candidate: {
       email: { type: String, required: true },
       name: { type: String, required: true },

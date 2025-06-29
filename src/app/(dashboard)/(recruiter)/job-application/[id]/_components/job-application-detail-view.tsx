@@ -37,7 +37,7 @@ interface ApplicationDetailProps {
   application: {
     id: string;
     uuid: string;
-    status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+    status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'in_progress' | 'completed';
     preferredLanguage: string;
     candidate: {
       email: string;

@@ -590,6 +590,84 @@ export async function getJobApplicationByUuid(uuid: string) {
           avatar: userId.avatar,
         }
       : undefined,
+    interviewConversation:
+      application.interviewConversation?.map(
+        (message: {
+          messageId: string;
+          type: string;
+          content: string;
+          timestamp: Date;
+          phase?: string;
+          questionIndex?: number;
+          questionId?: string;
+          categoryType?: string;
+          isRepeat?: boolean;
+          isClarification?: boolean;
+        }) => ({
+          messageId: message.messageId,
+          type: message.type,
+          content: message.content,
+          timestamp: new Date(message.timestamp).toISOString(),
+          phase: message.phase,
+          questionIndex: message.questionIndex,
+          questionId: message.questionId,
+          categoryType: message.categoryType,
+          isRepeat: message.isRepeat || false,
+          isClarification: message.isClarification || false,
+        })
+      ) || [],
+    interviewState: application.interviewState
+      ? {
+          currentPhase: application.interviewState.currentPhase,
+          currentQuestionIndex: application.interviewState.currentQuestionIndex,
+          totalQuestions: application.interviewState.totalQuestions,
+          questionsAskedByCategory:
+            (application.interviewState.questionsAskedByCategory as Record<string, number>) || {},
+          maxQuestionsPerCategory:
+            (application.interviewState.maxQuestionsPerCategory as Record<string, number>) || {},
+          completedCategories: application.interviewState.completedCategories || [],
+          currentCategory: application.interviewState.currentCategory,
+          questionHistory:
+            application.interviewState.questionHistory?.map(
+              (q: {
+                questionId: string;
+                categoryType: string;
+                question: string;
+                asked?: boolean;
+                answered?: boolean;
+                isRepeat?: boolean;
+                isClarification?: boolean;
+                timestamp: Date;
+                userResponse?: string;
+                feedback?: string;
+              }) => ({
+                questionId: q.questionId,
+                categoryType: q.categoryType,
+                question: q.question,
+                asked: q.asked || false,
+                answered: q.answered || false,
+                isRepeat: q.isRepeat || false,
+                isClarification: q.isClarification || false,
+                timestamp: new Date(q.timestamp).toISOString(),
+                userResponse: q.userResponse,
+                feedback: q.feedback,
+              })
+            ) || [],
+          clarificationRequests: application.interviewState.clarificationRequests || 0,
+          actualQuestionsAsked: application.interviewState.actualQuestionsAsked || 0,
+          startedAt: application.interviewState.startedAt
+            ? new Date(application.interviewState.startedAt).toISOString()
+            : undefined,
+          lastActivityAt: application.interviewState.lastActivityAt
+            ? new Date(application.interviewState.lastActivityAt).toISOString()
+            : undefined,
+          estimatedCompletion: application.interviewState.estimatedCompletion
+            ? new Date(application.interviewState.estimatedCompletion).toISOString()
+            : undefined,
+          isWaitingForFinalQuestions:
+            application.interviewState.isWaitingForFinalQuestions || false,
+        }
+      : undefined,
     createdAt: new Date(application.createdAt).toISOString(),
     updatedAt: new Date(application.updatedAt).toISOString(),
   };

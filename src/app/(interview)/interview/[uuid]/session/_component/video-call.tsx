@@ -27,7 +27,7 @@ import UserVideoFeed from './user-video-feed';
 interface ApplicationData {
   id: string;
   uuid: string;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'in_progress' | 'completed';
   preferredLanguage: string;
   candidate: {
     email: string;
