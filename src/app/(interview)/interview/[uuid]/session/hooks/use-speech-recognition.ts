@@ -189,7 +189,7 @@ export const useSpeechRecognition = (isMuted: boolean, applicationUuid: string) 
 
   // Initialize speech recognition when interview loads
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || recognition) return; // Don't create multiple instances
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -358,7 +358,9 @@ export const useSpeechRecognition = (isMuted: boolean, applicationUuid: string) 
           console.log('🔄 Auto-restarting speech recognition...');
           setTimeout(() => {
             try {
-              recognitionInstance.start();
+              if (!isRecognitionActive) {
+                recognitionInstance.start();
+              }
             } catch (error) {
               console.log('⚠️ Recognition restart error:', error);
             }
@@ -380,25 +382,22 @@ export const useSpeechRecognition = (isMuted: boolean, applicationUuid: string) 
           }
         }, 100);
       } else {
-        console.log('🔇 Speech recognition muted - not starting automatically');
+        console.log('🔇 Speech recognition muted - not starting');
       }
     } else {
       console.warn('Speech recognition not supported in this browser');
     }
-  }, [
-    isInitialized,
-    applicationUuid,
-    isMuted,
-    interviewState?.currentCategory,
-    interviewState?.currentPhase,
-    interviewState?.currentQuestionIndex,
-  ]);
+  }, [isInitialized, recognition]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup effect for recognition
   useEffect(() => {
     return () => {
       if (recognition) {
-        recognition.stop();
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.log('Cleanup recognition stop error:', error);
+        }
         setIsRecognitionActive(false);
       }
     };
@@ -406,26 +405,39 @@ export const useSpeechRecognition = (isMuted: boolean, applicationUuid: string) 
 
   // Handle mute/unmute
   useEffect(() => {
-    if (recognition) {
-      if (isMuted) {
-        recognition.stop();
-      } else if (!isRecognitionActive) {
+    if (recognition && isInitialized) {
+      if (isMuted && isRecognitionActive) {
+        console.log('🔇 Muting - stopping recognition');
         try {
-          recognition.start();
+          recognition.stop();
         } catch (error) {
-          console.log('Mute toggle recognition start error:', error);
+          console.log('Mute recognition stop error:', error);
         }
+      } else if (!isMuted && !isRecognitionActive) {
+        console.log('🔊 Unmuting - starting recognition');
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch (error) {
+            console.log('Mute toggle recognition start error:', error);
+          }
+        }, 100);
       }
     }
-  }, [isMuted, recognition, isRecognitionActive]);
+  }, [isMuted, recognition, isRecognitionActive, isInitialized]);
 
   // Stop speech recognition
   const stopRecognition = useCallback(() => {
-    if (recognition) {
-      recognition.stop();
-      setIsRecognitionActive(false);
+    if (recognition && isRecognitionActive) {
+      console.log('🛑 Manually stopping speech recognition');
+      try {
+        recognition.stop();
+        setIsRecognitionActive(false);
+      } catch (error) {
+        console.log('Manual stop recognition error:', error);
+      }
     }
-  }, [recognition]);
+  }, [recognition, isRecognitionActive]);
 
   // Add message manually to transcript
   const addMessage = useCallback((message: Omit<TranscriptMessage, 'id' | 'timestamp'>) => {
