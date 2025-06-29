@@ -927,3 +927,51 @@ export async function uploadScreenVideo(applicationId: string, videoBlob: Blob, 
     throw new Error('Failed to upload screen monitoring video. Please try again.');
   }
 }
+
+/**
+ * Update preferred language for a job application
+ */
+export const updateJobApplicationLanguage = async (
+  applicationUuid: string,
+  preferredLanguage: string
+) => {
+  if (!applicationUuid) {
+    throw new Error('Application UUID is required.');
+  }
+
+  if (!preferredLanguage) {
+    throw new Error('Preferred language is required.');
+  }
+
+  await connectToDatabase();
+
+  const { user } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to update language preference.');
+  }
+
+  try {
+    // Find and update the job application
+    const updatedApplication = await JobApplication.findOneAndUpdate(
+      {
+        uuid: applicationUuid,
+        'candidate.email': user.email, // Ensure the user owns this application
+      },
+      {
+        preferredLanguage,
+      },
+      {
+        new: true, // Return the updated document
+      }
+    );
+
+    if (!updatedApplication) {
+      throw new Error('Job application not found or you do not have permission to update it.');
+    }
+
+    return { success: true, preferredLanguage };
+  } catch (error) {
+    console.error('Error updating preferred language:', error);
+    throw new Error('Failed to update preferred language.');
+  }
+};

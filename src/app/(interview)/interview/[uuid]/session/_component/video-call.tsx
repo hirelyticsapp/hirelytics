@@ -1,8 +1,9 @@
 'use client';
+import { Camera, CheckCircle, Monitor, MonitorPlay, Video } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { uploadScreenImage } from '@/actions/job-application';
+import { updateJobApplicationLanguage, uploadScreenImage } from '@/actions/job-application';
 import { Button } from '@/components/ui/button';
 
 // Import custom hooks for managing different aspects of the video call
@@ -15,9 +16,11 @@ import { useSpeechRecognition } from '../hooks/use-speech-recognition';
 import AIVideoFeed from './ai-video-feed';
 import ChatTranscript from './chat-transcript';
 import DeviceSelector from './device-selector';
+import InterviewLanguageSelector from './interview-language-selector';
 // Import UI components
 import InterviewStartScreen from './interview-start-screen';
 import MediaControls from './media-control';
+import ThemeToggle from './theme-toggle';
 import TimerDisplay from './timer-display';
 import UserVideoFeed from './user-video-feed';
 
@@ -110,6 +113,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
   // Main state for interview flow
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
+  // Language state
+  const [currentLanguage, setCurrentLanguage] = useState(applicationData.preferredLanguage);
+
   // UI state
   const [showDeviceSelector, setShowDeviceSelector] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -158,10 +164,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     stopCameraRecording: _stopCameraRecording, // Hidden for production
     downloadCameraRecording: _downloadCameraRecording, // Hidden for production
     isScreenRecording,
-    screenRecordedChunks,
+    screenRecordedChunks: _screenRecordedChunks,
     startScreenRecording,
-    stopScreenRecording,
-    downloadScreenRecording,
+    stopScreenRecording: _stopScreenRecording,
+    downloadScreenRecording: _downloadScreenRecording,
     stopAllRecordings,
   } = useRecording();
 
@@ -377,9 +383,26 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     startCameraRecording(mediaStream);
   }, [startCameraRecording, mediaStream]);
 
-  const handleStartScreenRecording = useCallback(() => {
+  const _handleStartScreenRecording = useCallback(() => {
     startScreenRecording(screenStream);
   }, [startScreenRecording, screenStream]);
+
+  // Language update handler
+  const handleLanguageChange = useCallback(
+    async (languageCode: string) => {
+      try {
+        await updateJobApplicationLanguage(applicationData.uuid, languageCode);
+        setCurrentLanguage(languageCode);
+
+        // Update the applicationData object for consistency
+        applicationData.preferredLanguage = languageCode;
+      } catch (error) {
+        console.error('Failed to update language:', error);
+        throw error; // Re-throw to let the component handle the error notification
+      }
+    },
+    [applicationData]
+  );
 
   // Monitor screen sharing during interview for mandatory monitoring
   useEffect(() => {
@@ -406,6 +429,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
         onStartInterview={startInterview}
         onCancel={() => window.history.back()}
         applicationData={applicationData}
+        onLanguageChange={handleLanguageChange}
       />
     );
   }
@@ -419,41 +443,65 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
             {applicationData.jobDetails.title} - Interview
           </h1>
 
-          {/* Monitoring status indicators */}
+          {/* Monitoring status indicators - Short versions with proper icons */}
           {applicationData.sessionInstruction?.screenMonitoring && (
-            <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded">
-              Screen Monitoring: {applicationData.sessionInstruction.screenMonitoringMode}
+            <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded flex items-center gap-1">
+              <Monitor className="w-3 h-3" />
+              {applicationData.sessionInstruction.screenMonitoringMode === 'photo' ? (
+                <Camera className="w-3 h-3" />
+              ) : (
+                <Video className="w-3 h-3" />
+              )}
             </span>
           )}
           {applicationData.sessionInstruction?.cameraMonitoring && (
-            <span className="px-2 py-1 bg-orange-500 text-white text-xs rounded">
-              Camera Monitoring: {applicationData.sessionInstruction.cameraMonitoringMode}
+            <span className="px-2 py-1 bg-orange-500 text-white text-xs rounded flex items-center gap-1">
+              <Camera className="w-3 h-3" />
+              {applicationData.sessionInstruction.cameraMonitoringMode === 'photo' ? (
+                <Camera className="w-3 h-3" />
+              ) : (
+                <Video className="w-3 h-3" />
+              )}
             </span>
           )}
 
-          {/* Status indicators */}
+          {/* Status indicators - Short versions with proper icons */}
           {isScreenSharing && (
-            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse">
-              Screen Sharing
+            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse flex items-center gap-1">
+              <MonitorPlay className="w-3 h-3" />
+              <span>Share</span>
             </span>
           )}
           {isCameraRecording && (
-            <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs rounded animate-pulse">
-              ● Camera Recording
+            <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs rounded animate-pulse flex items-center gap-1">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <span>Rec</span>
             </span>
           )}
           {isScreenRecording && (
-            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse">
-              ● Screen Recording
+            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded animate-pulse flex items-center gap-1">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <span>Screen</span>
             </span>
           )}
         </div>
 
-        {/* Timer display */}
-        <TimerDisplay
-          totalQuestions={applicationData.instructionsForAi?.totalQuestions}
-          duration={applicationData.sessionInstruction.duration}
-        />
+        {/* Language Selector, Theme Toggle and Timer */}
+        <div className="flex items-center space-x-3">
+          <InterviewLanguageSelector
+            currentLanguage={currentLanguage}
+            onLanguageChange={handleLanguageChange}
+            disabled={false}
+          />
+
+          <ThemeToggle />
+
+          {/* Timer display */}
+          <TimerDisplay
+            totalQuestions={applicationData.instructionsForAi?.totalQuestions}
+            duration={applicationData.sessionInstruction.duration}
+          />
+        </div>
       </header>
 
       {/* Main Content Area - Single unified layout */}
@@ -655,7 +703,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
       {(applicationData.sessionInstruction?.screenMonitoring ||
         applicationData.sessionInstruction?.cameraMonitoring) && (
         <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-200 text-xs text-yellow-800 flex items-center justify-center">
-          <span className="mr-2">🔒</span>
+          <CheckCircle className="w-4 h-4 mr-2 text-yellow-600" />
           <span>
             This session includes monitoring features for security and assessment purposes.
             {applicationData.sessionInstruction?.screenMonitoring &&

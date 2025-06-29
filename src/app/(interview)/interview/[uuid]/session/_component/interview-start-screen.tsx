@@ -3,8 +3,13 @@ import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { availableLanguages } from '@/lib/constants/language-constants';
+
+import InterviewLanguageSelector from './interview-language-selector';
+import ThemeToggle from './theme-toggle';
 
 interface ApplicationData {
+  preferredLanguage: string;
   candidate: {
     name: string;
   };
@@ -34,6 +39,7 @@ interface InterviewStartScreenProps {
   onStartInterview: () => void;
   onCancel: () => void;
   applicationData: ApplicationData;
+  onLanguageChange?: (languageCode: string) => Promise<void>;
 }
 
 /**
@@ -44,15 +50,26 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
   onStartInterview,
   onCancel,
   applicationData,
+  onLanguageChange,
 }) => {
   const totalQuestions = applicationData.instructionsForAi?.totalQuestions || 10;
   // Use duration from session instruction (mandatory field)
   const estimatedDuration = applicationData.sessionInstruction.duration;
   const difficultyLevel = applicationData.instructionsForAi?.difficultyLevel || 'normal';
 
+  // Get language information
+  const selectedLanguage =
+    availableLanguages.find((lang) => lang.code === applicationData.preferredLanguage) ||
+    availableLanguages[0];
+
   return (
     <div className="h-screen flex items-center justify-center p-4 bg-background overflow-hidden">
-      <Card className="max-w-5xl w-full h-fit max-h-[95vh] overflow-y-auto p-6 bg-card text-card-foreground border border-border">
+      <Card className="max-w-5xl w-full h-fit max-h-[95vh] overflow-y-auto p-6 bg-card text-card-foreground border border-border relative">
+        {/* Theme Toggle - Top Right */}
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+
         <div className="text-center mb-4">
           <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
             <Video className="w-6 h-6 text-primary-foreground" />
@@ -85,7 +102,16 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
         <div className="grid lg:grid-cols-2 gap-4 mb-4">
           {/* Interview Session Details */}
           <div>
-            <h2 className="text-base font-semibold text-foreground mb-2">Session Information</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-foreground">Session Information</h2>
+              {onLanguageChange && (
+                <InterviewLanguageSelector
+                  currentLanguage={applicationData.preferredLanguage}
+                  onLanguageChange={onLanguageChange}
+                  disabled={false}
+                />
+              )}
+            </div>
             <div className="space-y-2">
               {/* Duration and Questions */}
               <div className="p-3 bg-muted rounded-lg">
@@ -96,6 +122,9 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
                   <p>
                     • Difficulty:{' '}
                     {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
+                  </p>
+                  <p>
+                    • Language: {selectedLanguage.flag} {selectedLanguage.name}
                   </p>
                   {applicationData.instructionsForAi?.questionMode && (
                     <p>
@@ -124,7 +153,7 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
               </div>
 
               <div className="flex items-start space-x-2 p-2 bg-accent rounded-lg">
-                <Mic className="w-5 h-5 text-green-600 mt-0.5" />
+                <Mic className="w-5 h-5 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium text-foreground">Live Transcription</h3>
                   <p className="text-xs text-muted-foreground">Real-time speech-to-text</p>
@@ -136,16 +165,19 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
                 <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <Monitor className="w-5 h-5 text-yellow-600 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      Screen Monitoring (Required)
+                    <h3 className="text-sm font-medium text-yellow-800 flex items-center gap-1">
+                      Screen Monitoring
+                      {applicationData.sessionInstruction.screenMonitoringMode === 'photo' ? (
+                        <Camera className="w-4 h-4" />
+                      ) : (
+                        <Video className="w-4 h-4" />
+                      )}
+                      <span className="text-xs bg-yellow-200 px-1 rounded">Required</span>
                     </h3>
                     <p className="text-xs text-yellow-700">
                       {applicationData.sessionInstruction.screenMonitoringMode === 'video'
-                        ? 'Continuous screen recording'
-                        : `Screen snapshots every ${applicationData.sessionInstruction.screenMonitoringInterval || 30}s`}
-                    </p>
-                    <p className="text-xs text-yellow-600 font-medium mt-1">
-                      You must share your full screen to start the interview
+                        ? 'Continuous recording'
+                        : `Snapshots every ${applicationData.sessionInstruction.screenMonitoringInterval || 30}s`}
                     </p>
                   </div>
                 </div>
@@ -155,11 +187,18 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
                 <div className="flex items-start space-x-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                   <Camera className="w-5 h-5 text-orange-600 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-orange-800">Camera Monitoring</h3>
+                    <h3 className="text-sm font-medium text-orange-800 flex items-center gap-1">
+                      Camera Monitoring
+                      {applicationData.sessionInstruction.cameraMonitoringMode === 'photo' ? (
+                        <Camera className="w-4 h-4" />
+                      ) : (
+                        <Video className="w-4 h-4" />
+                      )}
+                    </h3>
                     <p className="text-xs text-orange-700">
                       {applicationData.sessionInstruction.cameraMonitoringMode === 'video'
-                        ? 'Continuous camera recording'
-                        : `Camera snapshots every ${applicationData.sessionInstruction.cameraMonitoringInterval || 30}s`}
+                        ? 'Continuous recording'
+                        : `Snapshots every ${applicationData.sessionInstruction.cameraMonitoringInterval || 30}s`}
                     </p>
                   </div>
                 </div>
@@ -220,15 +259,17 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
             Camera and microphone access will be required for this interview session.
           </p>
           {applicationData.sessionInstruction.screenMonitoring && (
-            <p className="text-xs text-orange-700 mt-2 bg-orange-50 border border-orange-200 rounded px-3 py-1">
-              ⚠️ Screen sharing is mandatory for this interview. You will be prompted to share your
+            <p className="text-xs text-orange-700 mt-2 bg-orange-50 border border-orange-200 rounded px-3 py-1 flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-orange-600" />
+              Screen sharing is mandatory for this interview. You will be prompted to share your
               full screen.
             </p>
           )}
           {(applicationData.sessionInstruction.screenMonitoring ||
             applicationData.sessionInstruction.cameraMonitoring) && (
-            <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 border border-yellow-200 rounded px-3 py-1">
-              🔒 This session includes monitoring features for security and assessment purposes.
+            <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 border border-yellow-200 rounded px-3 py-1 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-yellow-600" />
+              This session includes monitoring features for security and assessment purposes.
             </p>
           )}
         </div>
