@@ -257,6 +257,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             jobTitle={jobData.title}
             difficultyLevel={jobData.interviewConfig?.difficultyLevel}
             organizationName={jobData.organizationName}
+            jobId={jobId}
             onComplete={(data: QuestionsConfig, shouldMoveNext?: boolean) =>
               handleStepComplete('questionsConfig', data, shouldMoveNext)
             }

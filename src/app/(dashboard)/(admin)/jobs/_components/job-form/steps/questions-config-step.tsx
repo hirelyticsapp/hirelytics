@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Bot,
@@ -14,8 +15,9 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +56,7 @@ interface QuestionsConfigStepProps {
   jobTitle?: string;
   difficultyLevel?: string;
   organizationName?: string;
+  jobId?: string;
   onComplete: (data: QuestionsConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
   isSaving?: boolean;
@@ -65,6 +68,7 @@ export function QuestionsConfigStep({
   jobTitle,
   difficultyLevel,
   organizationName,
+  jobId,
   onComplete,
   onPrevious,
   isSaving = false,
@@ -81,6 +85,9 @@ export function QuestionsConfigStep({
     }, {}) || {}
   );
   const [generatingQuestions, setGeneratingQuestions] = useState<Record<string, boolean>>({});
+  const isInitializedRef = useRef(false);
+  const previousModeRef = useRef<string>('');
+  const queryClient = useQueryClient();
 
   const generateInterviewQuestionsMutation = useGenerateInterviewQuestionsMutation();
 
@@ -97,23 +104,101 @@ export function QuestionsConfigStep({
 
   const watchMode = form.watch('mode');
 
-  const availableQuestionTypes =
-    industriesData[industry as keyof typeof industriesData]?.questionTypes || [];
+  const availableQuestionTypes = useMemo(
+    () => industriesData[industry as keyof typeof industriesData]?.questionTypes || [],
+    [industry]
+  );
 
-  // Auto-select first question type if none selected
-  useState(() => {
-    if (selectedQuestionTypes.length === 0 && availableQuestionTypes.length > 0) {
-      const firstType = availableQuestionTypes[0].value;
-      setSelectedQuestionTypes([firstType]);
-      form.setValue('questionTypes', [firstType]);
-      form.setValue('categoryConfigs', [
-        {
-          type: firstType,
-          numberOfQuestions: Math.max(1, availableQuestionTypes[0].defaultQuestions || 3),
-        },
-      ]);
+  const generateQuestionsForType = useCallback(
+    async (questionType: string, numberOfQuestions: number) => {
+      setGeneratingQuestions((prev) => ({ ...prev, [questionType]: true }));
+
+      try {
+        const result = await generateInterviewQuestionsMutation.mutateAsync({
+          industry,
+          jobTitle: jobTitle || '',
+          difficultyLevel: difficultyLevel || 'normal',
+          questionTypes: [questionType],
+          totalQuestions: numberOfQuestions,
+          organizationName,
+        });
+
+        if (result.success) {
+          const typedQuestions = result.data.map((q) => ({
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            isAIGenerated: q.isAIGenerated ?? true,
+          }));
+
+          setManualQuestions((prev) => ({
+            ...prev,
+            [questionType]: typedQuestions,
+          }));
+
+          toast.success(`Generated ${numberOfQuestions} questions successfully!`);
+        }
+      } catch (error) {
+        console.error('Failed to generate questions:', error);
+        toast.error('Failed to generate questions. Please try again.');
+      } finally {
+        setGeneratingQuestions((prev) => ({ ...prev, [questionType]: false }));
+      }
+    },
+    [industry, jobTitle, difficultyLevel, organizationName, generateInterviewQuestionsMutation]
+  );
+
+  // Reset questions and categories when mode changes
+  useEffect(() => {
+    const currentMode = watchMode;
+
+    // Skip if this is the initial render or mode hasn't actually changed
+    if (previousModeRef.current === '' || previousModeRef.current === currentMode) {
+      previousModeRef.current = currentMode;
+      return;
     }
-  });
+
+    // Reset everything to default when mode changes
+    setManualQuestions({});
+    setSelectedQuestionTypes([]);
+
+    // Reset form to default values
+    form.setValue('questionTypes', []);
+    form.setValue('categoryConfigs', []);
+    form.setValue('questions', []);
+    form.setValue('totalQuestions', 0);
+
+    // Update the previous mode
+    previousModeRef.current = currentMode;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchMode]);
+
+  // Auto-select first question type if none selected (only on initial load)
+  useEffect(() => {
+    if (
+      !isInitializedRef.current &&
+      selectedQuestionTypes.length === 0 &&
+      availableQuestionTypes.length > 0 &&
+      watchMode // Only run if mode is set
+    ) {
+      isInitializedRef.current = true;
+      const firstType = availableQuestionTypes[0].value;
+
+      // Use setTimeout to avoid conflicts with other effects
+      setTimeout(() => {
+        setSelectedQuestionTypes([firstType]);
+        form.setValue('questionTypes', [firstType]);
+        form.setValue('categoryConfigs', [
+          {
+            type: firstType,
+            numberOfQuestions: 1, // Default to 1 question
+          },
+        ]);
+        form.setValue('totalQuestions', 1);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQuestionTypes.length, availableQuestionTypes, watchMode]);
 
   const handleQuestionTypeToggle = (typeValue: string) => {
     const updatedTypes = selectedQuestionTypes.includes(typeValue)
@@ -130,16 +215,12 @@ export function QuestionsConfigStep({
 
     // Update category configs based on selected types
     const newCategoryConfigs = updatedTypes.map((type) => {
-      const questionType = availableQuestionTypes.find((qt) => qt.value === type);
       const existingConfig = form
         .getValues('categoryConfigs')
         .find((config) => config.type === type);
       return {
         type,
-        numberOfQuestions: Math.max(
-          1,
-          existingConfig?.numberOfQuestions || questionType?.defaultQuestions || 3
-        ),
+        numberOfQuestions: existingConfig?.numberOfQuestions || 1, // Default to 1 question
       };
     });
 
@@ -148,6 +229,15 @@ export function QuestionsConfigStep({
     // Update total questions
     const totalQuestions = calculateTotalQuestions(newCategoryConfigs);
     form.setValue('totalQuestions', totalQuestions);
+
+    // If removing a type, clean up its questions
+    if (selectedQuestionTypes.includes(typeValue) && !updatedTypes.includes(typeValue)) {
+      setManualQuestions((prev) => {
+        const updated = { ...prev };
+        delete updated[typeValue];
+        return updated;
+      });
+    }
   };
 
   const updateCategoryQuestions = (typeValue: string, numberOfQuestions: number) => {
@@ -161,10 +251,25 @@ export function QuestionsConfigStep({
     // Update total questions
     const totalQuestions = calculateTotalQuestions(updatedConfigs);
     form.setValue('totalQuestions', totalQuestions);
+
+    // If in manual mode, adjust the number of questions (but don't auto-generate)
+    if (watchMode === 'manual') {
+      const currentQuestions = manualQuestions[typeValue] || [];
+      const currentCount = currentQuestions.length;
+
+      if (validNumber < currentCount) {
+        // Remove excess questions when count is decreased
+        setManualQuestions((prev) => ({
+          ...prev,
+          [typeValue]: currentQuestions.slice(0, validNumber),
+        }));
+      }
+      // Note: We don't auto-generate questions when count is increased
+    }
   };
 
-  const generateQuestionsForType = async (questionType: string, numberOfQuestions: number) => {
-    setGeneratingQuestions((prev) => ({ ...prev, [questionType]: true }));
+  const generateSingleQuestion = async (questionType: string, questionId: string) => {
+    setGeneratingQuestions((prev) => ({ ...prev, [`${questionType}_${questionId}`]: true }));
 
     try {
       const result = await generateInterviewQuestionsMutation.mutateAsync({
@@ -172,27 +277,33 @@ export function QuestionsConfigStep({
         jobTitle: jobTitle || '',
         difficultyLevel: difficultyLevel || 'normal',
         questionTypes: [questionType],
-        totalQuestions: numberOfQuestions,
+        totalQuestions: 1,
         organizationName,
       });
 
-      if (result.success) {
-        const typedQuestions = result.data.map((q) => ({
-          id: q.id,
-          type: q.type,
-          question: q.question,
-          isAIGenerated: q.isAIGenerated ?? true,
-        }));
+      if (result.success && result.data.length > 0) {
+        const newQuestion = result.data[0];
+        const typedQuestion = {
+          id: questionId,
+          type: newQuestion.type,
+          question: newQuestion.question,
+          isAIGenerated: true,
+        };
 
         setManualQuestions((prev) => ({
           ...prev,
-          [questionType]: typedQuestions,
+          [questionType]: (prev[questionType] || []).map((q) =>
+            q.id === questionId ? typedQuestion : q
+          ),
         }));
+
+        toast.success('Question generated successfully!');
       }
     } catch (error) {
-      console.error('Failed to generate questions:', error);
+      console.error('Failed to generate question:', error);
+      toast.error('Failed to generate question. Please try again.');
     } finally {
-      setGeneratingQuestions((prev) => ({ ...prev, [questionType]: false }));
+      setGeneratingQuestions((prev) => ({ ...prev, [`${questionType}_${questionId}`]: false }));
     }
   };
 
@@ -271,57 +382,99 @@ export function QuestionsConfigStep({
   };
 
   const onSubmit = async (data: QuestionsConfig) => {
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      return;
-    }
+    try {
+      const validationErrors = validateForm();
+      if (validationErrors.length > 0) {
+        return;
+      }
 
-    // Compile all manual questions if in manual mode
-    if (watchMode === 'manual') {
-      const allQuestions = Object.values(manualQuestions)
-        .flat()
-        .filter((q) => q.question.trim().length > 0);
-      data.questions = allQuestions;
-    }
+      // Compile all manual questions if in manual mode
+      if (watchMode === 'manual') {
+        const allQuestions = Object.values(manualQuestions)
+          .flat()
+          .filter((q) => q.question.trim().length > 0);
+        data.questions = allQuestions;
+      }
 
-    await onComplete(data, true); // Save and move to next step
+      await onComplete(data, true); // Save and move to next step
+
+      // Show success toast
+      toast.success('Questions configuration saved successfully!');
+
+      // Invalidate job queries to refresh data
+      if (jobId) {
+        await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      }
+    } catch (error) {
+      console.error('Failed to save questions configuration:', error);
+      toast.error('Failed to save questions configuration. Please try again.');
+    }
   };
 
   const handleSave = async () => {
-    const formData = form.getValues();
-    // Compile all manual questions if in manual mode
-    if (watchMode === 'manual') {
-      const allQuestions = Object.values(manualQuestions)
-        .flat()
-        .filter((q) => q.question.trim().length > 0);
-      formData.questions = allQuestions;
-    }
+    try {
+      const formData = form.getValues();
+      // Compile all manual questions if in manual mode
+      if (watchMode === 'manual') {
+        const allQuestions = Object.values(manualQuestions)
+          .flat()
+          .filter((q) => q.question.trim().length > 0);
+        formData.questions = allQuestions;
+      }
 
-    const isValid = await form.trigger();
-    if (isValid) {
-      await onComplete(formData, false); // Save without moving to next step
+      const isValid = await form.trigger();
+      if (isValid) {
+        await onComplete(formData, false); // Save without moving to next step
+
+        // Show success toast
+        toast.success('Questions configuration saved successfully!');
+
+        // Invalidate job queries to refresh data
+        if (jobId) {
+          await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+          await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save questions configuration:', error);
+      toast.error('Failed to save questions configuration. Please try again.');
     }
   };
 
   const handleSaveAndContinue = async () => {
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      // Show validation errors
-      return;
-    }
+    try {
+      const validationErrors = validateForm();
+      if (validationErrors.length > 0) {
+        // Show validation errors
+        return;
+      }
 
-    const formData = form.getValues();
-    // Compile all manual questions if in manual mode
-    if (watchMode === 'manual') {
-      const allQuestions = Object.values(manualQuestions)
-        .flat()
-        .filter((q) => q.question.trim().length > 0);
-      formData.questions = allQuestions;
-    }
+      const formData = form.getValues();
+      // Compile all manual questions if in manual mode
+      if (watchMode === 'manual') {
+        const allQuestions = Object.values(manualQuestions)
+          .flat()
+          .filter((q) => q.question.trim().length > 0);
+        formData.questions = allQuestions;
+      }
 
-    const isValid = await form.trigger();
-    if (isValid) {
-      await onComplete(formData, true); // Save and move to next step
+      const isValid = await form.trigger();
+      if (isValid) {
+        await onComplete(formData, true); // Save and move to next step
+
+        // Show success toast
+        toast.success('Questions configuration saved successfully!');
+
+        // Invalidate job queries to refresh data
+        if (jobId) {
+          await queryClient.invalidateQueries({ queryKey: ['job', jobId] });
+          await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save questions configuration:', error);
+      toast.error('Failed to save questions configuration. Please try again.');
     }
   };
 
@@ -609,15 +762,35 @@ export function QuestionsConfigStep({
                                       className="min-h-[60px]"
                                     />
                                   </div>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeManualQuestion(typeValue, question.id)}
-                                    className="mt-6"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
+                                  <div className="flex flex-col gap-2 mt-6">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => generateSingleQuestion(typeValue, question.id)}
+                                      disabled={generatingQuestions[`${typeValue}_${question.id}`]}
+                                      className="gap-1"
+                                      title="Generate AI question for this slot"
+                                    >
+                                      {generatingQuestions[`${typeValue}_${question.id}`] ? (
+                                        <>
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Sparkles className="h-3 w-3" />
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeManualQuestion(typeValue, question.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               ))
                             )}
