@@ -646,6 +646,7 @@ export async function uploadMonitoringImage(
     const imageEntry = {
       s3Key,
       timestamp: new Date(),
+      type: 'image' as const,
     };
 
     await JobApplication.findByIdAndUpdate(
@@ -780,5 +781,149 @@ export async function deleteMonitoringImage(
   } catch (error) {
     console.error(`Error deleting ${imageType} monitoring image:`, error);
     throw new Error(`Failed to delete ${imageType} monitoring image. Please try again.`);
+  }
+}
+
+export async function uploadCameraVideo(applicationId: string, videoBlob: Blob, duration: number) {
+  await connectToDatabase();
+
+  const { user } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to upload monitoring videos.');
+  }
+
+  // Verify the application exists and belongs to the user
+  const application = await JobApplication.findOne({
+    _id: applicationId,
+    userId: new mongoose.Types.ObjectId(user.id),
+  });
+
+  if (!application) {
+    throw new Error(
+      'Application not found or you do not have permission to upload videos for this application.'
+    );
+  }
+
+  try {
+    // Convert blob to buffer
+    const arrayBuffer = await videoBlob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Generate unique S3 key
+    const timestamp = new Date().toISOString();
+    const uniqueId = crypto.randomUUID();
+    const s3Key = `monitoring/${applicationId}/camera/video/${timestamp}-${uniqueId}.webm`;
+
+    // Upload to S3
+    const s3Client = createS3Client();
+    const uploadCommand = new PutObjectCommand({
+      Bucket: env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: buffer,
+      ContentType: 'video/webm',
+    });
+
+    await s3Client.send(uploadCommand);
+
+    // Update the application with the new monitoring video
+    const videoEntry = {
+      s3Key,
+      timestamp: new Date(),
+      duration,
+      type: 'video' as const,
+    };
+
+    await JobApplication.findByIdAndUpdate(
+      applicationId,
+      {
+        $push: {
+          'monitoringImages.camera': videoEntry,
+        },
+      },
+      { new: true }
+    );
+
+    return {
+      success: true,
+      message: 'Camera monitoring video uploaded successfully!',
+      s3Key,
+      timestamp: videoEntry.timestamp.toISOString(),
+      duration,
+    };
+  } catch (error) {
+    console.error('Error uploading camera monitoring video:', error);
+    throw new Error('Failed to upload camera monitoring video. Please try again.');
+  }
+}
+
+export async function uploadScreenVideo(applicationId: string, videoBlob: Blob, duration: number) {
+  await connectToDatabase();
+
+  const { user } = await auth();
+  if (!user) {
+    throw new Error('You must be logged in to upload monitoring videos.');
+  }
+
+  // Verify the application exists and belongs to the user
+  const application = await JobApplication.findOne({
+    _id: applicationId,
+    userId: new mongoose.Types.ObjectId(user.id),
+  });
+
+  if (!application) {
+    throw new Error(
+      'Application not found or you do not have permission to upload videos for this application.'
+    );
+  }
+
+  try {
+    // Convert blob to buffer
+    const arrayBuffer = await videoBlob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Generate unique S3 key
+    const timestamp = new Date().toISOString();
+    const uniqueId = crypto.randomUUID();
+    const s3Key = `monitoring/${applicationId}/screen/video/${timestamp}-${uniqueId}.webm`;
+
+    // Upload to S3
+    const s3Client = createS3Client();
+    const uploadCommand = new PutObjectCommand({
+      Bucket: env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: buffer,
+      ContentType: 'video/webm',
+    });
+
+    await s3Client.send(uploadCommand);
+
+    // Update the application with the new monitoring video
+    const videoEntry = {
+      s3Key,
+      timestamp: new Date(),
+      duration,
+      type: 'video' as const,
+    };
+
+    await JobApplication.findByIdAndUpdate(
+      applicationId,
+      {
+        $push: {
+          'monitoringImages.screen': videoEntry,
+        },
+      },
+      { new: true }
+    );
+
+    return {
+      success: true,
+      message: 'Screen monitoring video uploaded successfully!',
+      s3Key,
+      timestamp: videoEntry.timestamp.toISOString(),
+      duration,
+    };
+  } catch (error) {
+    console.error('Error uploading screen monitoring video:', error);
+    throw new Error('Failed to upload screen monitoring video. Please try again.');
   }
 }

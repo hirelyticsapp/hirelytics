@@ -1,12 +1,14 @@
 'use client';
-import { Download } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { uploadScreenImage } from '@/actions/job-application';
 import { Button } from '@/components/ui/button';
 
 // Import custom hooks for managing different aspects of the video call
 import { useMediaStream } from '../hooks/use-media-stream';
 import { useRecording } from '../hooks/use-recording';
+import { useScreenMonitoring } from '../hooks/use-screen-monitoring';
 import { useScreenShare } from '../hooks/use-screen-share';
 import { useSnapshot } from '../hooks/use-snapshot';
 import { useSpeechRecognition } from '../hooks/use-speech-recognition';
@@ -102,6 +104,9 @@ interface VideoCallProps {
  * - Device management
  */
 const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
+  // Next.js router for navigation
+  const router = useRouter();
+
   // Main state for interview flow
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
@@ -126,14 +131,32 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     stopMediaStream,
   } = useMediaStream(isInterviewStarted);
 
-  const { screenStream, isScreenSharing, toggleScreenShare, stopScreenShare } = useScreenShare();
+  const {
+    screenStream,
+    isScreenSharing,
+    toggleScreenShare: _toggleScreenShare,
+    stopScreenShare,
+  } = useScreenShare();
+
+  // Screen monitoring hook for mandatory screen sharing
+  const {
+    screenStream: monitoringScreenStream,
+    isScreenSharing: isMonitoringScreenSharing,
+    screenShareError,
+    isScreenShareRequired,
+    startMandatoryScreenShare,
+    stopScreenShare: stopMonitoringScreenShare,
+    setScreenShareRequired,
+    isScreenShareActive,
+    captureScreenSnapshot,
+  } = useScreenMonitoring();
 
   const {
     isCameraRecording,
-    cameraRecordedChunks,
+    cameraRecordedChunks: _cameraRecordedChunks, // Hidden for production
     startCameraRecording,
-    stopCameraRecording,
-    downloadCameraRecording,
+    stopCameraRecording: _stopCameraRecording, // Hidden for production
+    downloadCameraRecording: _downloadCameraRecording, // Hidden for production
     isScreenRecording,
     screenRecordedChunks,
     startScreenRecording,
@@ -161,11 +184,18 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
   }, [mediaStream]);
 
   useEffect(() => {
-    if (screenRef.current && screenStream) {
-      screenRef.current.srcObject = screenStream;
-      console.log('Screen ref updated with screen stream');
+    if (screenRef.current) {
+      // Prioritize monitoring screen stream over regular screen sharing
+      const streamToUse = monitoringScreenStream || screenStream;
+      if (streamToUse) {
+        screenRef.current.srcObject = streamToUse;
+        console.log(
+          'Screen ref updated with stream:',
+          monitoringScreenStream ? 'monitoring' : 'regular'
+        );
+      }
     }
-  }, [screenStream]);
+  }, [screenStream, monitoringScreenStream]);
 
   // Simulate speaking detection for demo purposes
   useEffect(() => {
@@ -203,8 +233,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
       const interval = sessionInstruction.screenMonitoringInterval || 30;
       const screenMonitoringInterval = setInterval(async () => {
         console.log(`Screen monitoring snapshot taken at: ${new Date().toISOString()}`);
-        if (screenRef.current) {
-          await takeMonitoringSnapshot(screenRef, applicationData.id, 'screen');
+        try {
+          // Use the monitoring screen stream capture function
+          const imageData = await captureScreenSnapshot();
+          if (imageData) {
+            await uploadScreenImage(applicationData.id, imageData);
+            console.log('Screen monitoring image uploaded successfully');
+          }
+        } catch (error) {
+          console.error('Error capturing/uploading screen monitoring image:', error);
         }
       }, interval * 1000);
       intervals.push(screenMonitoringInterval);
@@ -259,6 +296,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     mediaStream,
     screenStream,
     takeMonitoringSnapshot,
+    captureScreenSnapshot,
     startCameraRecording,
     startScreenRecording,
     videoRef,
@@ -278,16 +316,34 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
   }, [isInterviewStarted, applicationData.sessionInstruction]);
 
   // Start interview handler
-  const startInterview = useCallback(() => {
-    setIsInterviewStarted(true);
-    console.log('Interview started');
-  }, []);
+  const startInterview = useCallback(async () => {
+    try {
+      // Check if screen monitoring is required
+      if (applicationData.sessionInstruction?.screenMonitoring) {
+        setScreenShareRequired(true);
+
+        // Start mandatory screen sharing before allowing interview to start
+        await startMandatoryScreenShare();
+        console.log('Screen monitoring started for interview');
+      }
+
+      setIsInterviewStarted(true);
+      console.log('Interview started');
+    } catch (error) {
+      console.error('Failed to start interview:', error);
+      // Don't start interview if screen sharing failed
+      alert(
+        'Screen sharing is required for this interview. Please allow screen sharing to continue.'
+      );
+    }
+  }, [applicationData.sessionInstruction, setScreenShareRequired, startMandatoryScreenShare]);
 
   // End call handler - cleanup all resources
   const endCall = useCallback(() => {
     // Stop all media streams
     stopMediaStream();
     stopScreenShare();
+    stopMonitoringScreenShare(); // Stop monitoring screen share
 
     // Stop all recordings
     stopAllRecordings();
@@ -295,24 +351,53 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     // Stop speech recognition
     stopRecognition();
 
-    // Navigate back
-    window.history.back();
-  }, [stopMediaStream, stopScreenShare, stopAllRecordings, stopRecognition]);
+    // Reset screen monitoring requirement
+    setScreenShareRequired(false);
 
-  // Take snapshot handler - captures from current video source
-  const handleTakeSnapshot = useCallback(() => {
+    // Navigate back to my applications page
+    router.push('/my-applications');
+  }, [
+    stopMediaStream,
+    stopScreenShare,
+    stopMonitoringScreenShare,
+    stopAllRecordings,
+    stopRecognition,
+    setScreenShareRequired,
+    router,
+  ]);
+
+  // Take snapshot handler - captures from current video source (Hidden for production)
+  const _handleTakeSnapshot = useCallback(() => {
     const currentVideoRef = isScreenSharing ? screenRef : videoRef;
     takeSnapshot(currentVideoRef);
   }, [isScreenSharing, takeSnapshot]);
 
-  // Recording handlers that pass the appropriate streams
-  const handleStartCameraRecording = useCallback(() => {
+  // Recording handlers that pass the appropriate streams (Hidden for production)
+  const _handleStartCameraRecording = useCallback(() => {
     startCameraRecording(mediaStream);
   }, [startCameraRecording, mediaStream]);
 
   const handleStartScreenRecording = useCallback(() => {
     startScreenRecording(screenStream);
   }, [startScreenRecording, screenStream]);
+
+  // Monitor screen sharing during interview for mandatory monitoring
+  useEffect(() => {
+    if (!isInterviewStarted || !applicationData.sessionInstruction?.screenMonitoring) return;
+
+    // Check if screen share is still active every 5 seconds
+    const checkInterval = setInterval(() => {
+      if (!isScreenShareActive()) {
+        console.error('Screen sharing stopped during interview - pausing interview');
+        setIsInterviewStarted(false);
+        alert(
+          'Screen sharing has stopped. The interview has been paused. Please restart screen sharing to continue.'
+        );
+      }
+    }, 5000);
+
+    return () => clearInterval(checkInterval);
+  }, [isInterviewStarted, applicationData.sessionInstruction, isScreenShareActive]);
 
   // Show start screen if interview hasn't started yet
   if (!isInterviewStarted) {
@@ -410,7 +495,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
             </div>
 
             {/* Screen Share - Always Bottom Right Corner of User Video (when active) */}
-            {isScreenSharing && screenStream && (
+            {((isScreenSharing && screenStream) ||
+              (isMonitoringScreenSharing && monitoringScreenStream)) && (
               <div className="absolute bottom-4 right-4 w-48 h-32 md:w-64 md:h-40 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-15">
                 <video
                   ref={screenRef}
@@ -419,14 +505,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
                   playsInline
                   className="w-full h-full object-contain bg-muted"
                 />
-
                 {/* Screen share label */}
                 <div className="absolute top-1 left-1 bg-primary px-2 py-1 rounded text-xs text-primary-foreground">
-                  Screen Share
+                  {isMonitoringScreenSharing ? 'Screen Monitoring' : 'Screen Share'}
                 </div>
 
                 {/* Screen Recording Controls - Compact */}
-                <div className="absolute bottom-1 left-1 flex space-x-1">
+                {/* <div className="absolute bottom-1 left-1 flex space-x-1">
                   {!isScreenRecording ? (
                     <Button
                       size="sm"
@@ -457,7 +542,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
                       <Download size={10} />
                     </Button>
                   )}
-                </div>
+                </div> */}
               </div>
             )}
 
@@ -465,6 +550,28 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
             {(applicationData.sessionInstruction?.cameraMonitoring ||
               applicationData.sessionInstruction?.screenMonitoring) && (
               <div className="absolute top-4 right-4 flex flex-col space-y-2 z-10">
+                {/* Screen monitoring requirement indicator */}
+                {applicationData.sessionInstruction?.screenMonitoring &&
+                  isScreenShareRequired &&
+                  !isMonitoringScreenSharing && (
+                    <div className="bg-orange-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                      Screen sharing required for monitoring
+                    </div>
+                  )}
+                {/* Screen monitoring active indicator */}
+                {applicationData.sessionInstruction?.screenMonitoring &&
+                  isMonitoringScreenSharing && (
+                    <div className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+                      Screen monitoring active
+                    </div>
+                  )}
+                {/* Screen sharing error */}
+                {screenShareError && (
+                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                    {screenShareError}
+                  </div>
+                )}
+
                 {isUploadingSnapshot && (
                   <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs animate-pulse">
                     Uploading monitoring data...
@@ -525,18 +632,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
           <MediaControls
             isMuted={isMuted}
             isCameraOff={isCameraOff}
-            isRecording={isCameraRecording}
-            isScreenSharing={isScreenSharing}
             onToggleMute={toggleMute}
             onToggleCamera={toggleCamera}
-            onToggleScreenShare={toggleScreenShare}
-            onStartRecording={handleStartCameraRecording}
-            onStopRecording={stopCameraRecording}
-            onDownloadRecording={downloadCameraRecording}
-            onTakeSnapshot={handleTakeSnapshot}
             onEndCall={endCall}
             onShowDeviceSelector={() => setShowDeviceSelector(true)}
-            hasRecording={cameraRecordedChunks.length > 0}
           />
         </div>
       </div>

@@ -1,52 +1,40 @@
-import {
-  Camera,
-  CameraOff,
-  Download,
-  ImageIcon,
-  Mic,
-  MicOff,
-  Monitor,
-  MonitorOff,
-  Phone,
-  Settings,
-} from 'lucide-react';
+import { Camera, CameraOff, Mic, MicOff, Phone, Settings } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 interface MediaControlsProps {
   isMuted: boolean;
   isCameraOff: boolean;
-  isRecording: boolean;
-  isScreenSharing: boolean;
+  isRecording?: boolean; // Hidden for production
+  isScreenSharing?: boolean; // Hidden for production
   onToggleMute: () => void;
   onToggleCamera: () => void;
-  onToggleScreenShare: () => void;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
-  onDownloadRecording: () => void;
-  onTakeSnapshot: () => void;
+  onToggleScreenShare?: () => void; // Hidden for production
+  onStartRecording?: () => void; // Hidden for production
+  onStopRecording?: () => void; // Hidden for production
+  onDownloadRecording?: () => void; // Hidden for production
+  onTakeSnapshot?: () => void; // Hidden for production
   onEndCall: () => void;
   onShowDeviceSelector: () => void;
-  hasRecording: boolean;
+  hasRecording?: boolean; // Hidden for production
 }
 
 const MediaControls: React.FC<MediaControlsProps> = ({
   isMuted,
   isCameraOff,
-  isRecording,
-  isScreenSharing,
+  isRecording: _isRecording, // Hidden for production
+  isScreenSharing: _isScreenSharing, // Hidden for production
   onToggleMute,
   onToggleCamera,
-  onToggleScreenShare,
-  onStartRecording,
-  onStopRecording,
-  onDownloadRecording,
-  onTakeSnapshot,
+  onToggleScreenShare: _onToggleScreenShare, // Hidden for production
+  onStartRecording: _onStartRecording, // Hidden for production
+  onStopRecording: _onStopRecording, // Hidden for production
+  onDownloadRecording: _onDownloadRecording, // Hidden for production
+  onTakeSnapshot: _onTakeSnapshot, // Hidden for production
   onEndCall,
   onShowDeviceSelector,
-  hasRecording,
+  hasRecording: _hasRecording, // Hidden for production
 }) => {
   return (
     <div className="flex items-center justify-center space-x-2 bg-background/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border">
@@ -72,8 +60,8 @@ const MediaControls: React.FC<MediaControlsProps> = ({
         {isCameraOff ? <CameraOff size={18} /> : <Camera size={18} />}
       </Button>
 
-      {/* Screen Share */}
-      <Button
+      {/* Screen Share - Hidden for production */}
+      {/* <Button
         variant={isScreenSharing ? 'default' : 'outline'}
         size="sm"
         onClick={onToggleScreenShare}
@@ -84,10 +72,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
         title={isScreenSharing ? 'Stop Screen Share' : 'Start Screen Share'}
       >
         {isScreenSharing ? <MonitorOff size={18} /> : <Monitor size={18} />}
-      </Button>
+      </Button> */}
 
-      {/* Combined Recording */}
-      <Button
+      {/* Combined Recording - Hidden for production */}
+      {/* <Button
         variant={isRecording ? 'destructive' : 'outline'}
         size="sm"
         onClick={isRecording ? onStopRecording : onStartRecording}
@@ -103,10 +91,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
             isRecording ? 'bg-destructive-foreground animate-pulse' : 'bg-destructive'
           )}
         />
-      </Button>
+      </Button> */}
 
-      {/* Take Snapshot */}
-      <Button
+      {/* Take Snapshot - Hidden for production */}
+      {/* <Button
         variant="outline"
         size="sm"
         onClick={onTakeSnapshot}
@@ -114,10 +102,10 @@ const MediaControls: React.FC<MediaControlsProps> = ({
         title="Take Snapshot"
       >
         <ImageIcon size={18} />
-      </Button>
+      </Button> */}
 
-      {/* Download Recording */}
-      {hasRecording && (
+      {/* Download Recording - Hidden for production */}
+      {/* {hasRecording && (
         <Button
           variant="secondary"
           size="sm"
@@ -127,7 +115,7 @@ const MediaControls: React.FC<MediaControlsProps> = ({
         >
           <Download size={18} />
         </Button>
-      )}
+      )} */}
 
       {/* Device Settings */}
       <Button

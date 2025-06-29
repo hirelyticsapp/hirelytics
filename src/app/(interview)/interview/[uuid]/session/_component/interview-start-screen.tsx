@@ -136,11 +136,16 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
                 <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <Monitor className="w-5 h-5 text-yellow-600 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-yellow-800">Screen Monitoring</h3>
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Screen Monitoring (Required)
+                    </h3>
                     <p className="text-xs text-yellow-700">
                       {applicationData.sessionInstruction.screenMonitoringMode === 'video'
                         ? 'Continuous screen recording'
                         : `Screen snapshots every ${applicationData.sessionInstruction.screenMonitoringInterval || 30}s`}
+                    </p>
+                    <p className="text-xs text-yellow-600 font-medium mt-1">
+                      You must share your full screen to start the interview
                     </p>
                   </div>
                 </div>
@@ -214,6 +219,12 @@ const InterviewStartScreen: React.FC<InterviewStartScreenProps> = ({
           <p className="text-xs text-muted-foreground">
             Camera and microphone access will be required for this interview session.
           </p>
+          {applicationData.sessionInstruction.screenMonitoring && (
+            <p className="text-xs text-orange-700 mt-2 bg-orange-50 border border-orange-200 rounded px-3 py-1">
+              ⚠️ Screen sharing is mandatory for this interview. You will be prompted to share your
+              full screen.
+            </p>
+          )}
           {(applicationData.sessionInstruction.screenMonitoring ||
             applicationData.sessionInstruction.cameraMonitoring) && (
             <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 border border-yellow-200 rounded px-3 py-1">

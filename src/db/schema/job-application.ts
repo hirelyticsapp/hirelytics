@@ -1,15 +1,16 @@
 import type { Document, Model, ObjectId } from 'mongoose';
 import mongoose, { Schema } from 'mongoose';
 
+interface MonitoringEntry {
+  s3Key: string;
+  timestamp: Date;
+  type?: 'image' | 'video';
+  duration?: number; // For videos, duration in seconds
+}
+
 interface MonitoringImage {
-  camera: {
-    s3Key: string;
-    timestamp: Date;
-  }[];
-  screen: {
-    s3Key: string;
-    timestamp: Date;
-  }[];
+  camera: MonitoringEntry[];
+  screen: MonitoringEntry[];
 }
 
 export interface IQuestion {
@@ -79,12 +80,16 @@ const JobApplicationSchema = new Schema<IJobApplication>(
         {
           s3Key: { type: String, required: true },
           timestamp: { type: Date, required: true },
+          type: { type: String, enum: ['image', 'video'], default: 'image' },
+          duration: { type: Number }, // For videos, duration in seconds
         },
       ],
       screen: [
         {
           s3Key: { type: String, required: true },
           timestamp: { type: Date, required: true },
+          type: { type: String, enum: ['image', 'video'], default: 'image' },
+          duration: { type: Number }, // For videos, duration in seconds
         },
       ],
     },
