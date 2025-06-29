@@ -172,7 +172,7 @@ export const useSpeechRecognition = (
       }
 
       // Handle speech recognition results
-      recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = async (event) => {
         const latest = event.results[event.results.length - 1];
         if (latest.isFinal) {
           const transcript = latest[0].transcript;
@@ -211,7 +211,7 @@ export const useSpeechRecognition = (
             applicationUuid,
             nextPhase
           )
-            .then((response) => {
+            .then(async (response) => {
               if (response.success && response.nextQuestion) {
                 const aiMessage: TranscriptMessage = {
                   id: Date.now() + 1,
@@ -257,7 +257,7 @@ export const useSpeechRecognition = (
               }
               setIsAITyping(false);
             })
-            .catch((error) => {
+            .catch(async (error) => {
               console.error('Error generating AI response:', error);
               // Generic fallback response on error
               const fallbackResponse = `That's really interesting, and I appreciate you taking the time to share that with me. I'd love to hear about a challenging situation you've encountered in your career and how you approached solving it. Could you walk me through a specific example that showcases your problem-solving skills?`;
@@ -278,6 +278,7 @@ export const useSpeechRecognition = (
               };
 
               setConversationHistory((prev) => [...prev, aiConversationMessage]);
+
               setIsAITyping(false);
             });
         }

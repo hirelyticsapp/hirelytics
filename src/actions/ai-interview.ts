@@ -1,6 +1,6 @@
 'use server';
 
-import { getJobApplicationByUuid } from '@/actions/job-application';
+import { getJobApplicationByUuid, saveInterviewConversation } from '@/actions/job-application';
 import { callAI } from '@/ai';
 
 export interface ConversationMessage {
@@ -378,21 +378,86 @@ export async function generateAIInterviewResponseWithUuid(
     };
 
     // Call the original function with the fetched context
-    return await generateAIInterviewResponse(
+    const response = await generateAIInterviewResponse(
       conversationHistory,
       userResponse,
       jobApplicationContext,
       currentPhase
     );
+
+    // Save user message to database
+    try {
+      await saveInterviewConversation(
+        applicationUuid,
+        `user-${Date.now()}`,
+        'user',
+        userResponse,
+        currentPhase?.current,
+        currentPhase?.questionIndex
+      );
+    } catch (error) {
+      console.error('Error saving user message:', error);
+    }
+
+    // Save AI response to database if successful
+    if (response.success && response.nextQuestion) {
+      try {
+        await saveInterviewConversation(
+          applicationUuid,
+          `ai-${Date.now()}`,
+          'ai',
+          response.nextQuestion,
+          response.phase?.current,
+          response.phase?.questionIndex
+        );
+      } catch (error) {
+        console.error('Error saving AI response:', error);
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error('Error fetching job application data:', error);
+
+    // Save user message to database even if there's an error
+    try {
+      await saveInterviewConversation(
+        applicationUuid,
+        `user-${Date.now()}`,
+        'user',
+        userResponse,
+        currentPhase?.current,
+        currentPhase?.questionIndex
+      );
+    } catch (saveError) {
+      console.error('Error saving user message:', saveError);
+    }
+
     // Fallback to original function without context
-    return await generateAIInterviewResponse(
+    const fallbackResponse = await generateAIInterviewResponse(
       conversationHistory,
       userResponse,
       undefined,
       currentPhase
     );
+
+    // Save fallback AI response to database
+    if (fallbackResponse.success && fallbackResponse.nextQuestion) {
+      try {
+        await saveInterviewConversation(
+          applicationUuid,
+          `ai-fallback-${Date.now()}`,
+          'ai',
+          fallbackResponse.nextQuestion,
+          fallbackResponse.phase?.current,
+          fallbackResponse.phase?.questionIndex
+        );
+      } catch (saveError) {
+        console.error('Error saving fallback AI response:', saveError);
+      }
+    }
+
+    return fallbackResponse;
   }
 }
 
@@ -448,10 +513,47 @@ export async function generateInterviewIntroductionWithUuid(
     };
 
     // Call the original function with the fetched context
-    return await generateInterviewIntroduction(jobApplicationContext);
+    const response = await generateInterviewIntroduction(jobApplicationContext);
+
+    // Save AI introduction to database if successful
+    if (response.success && response.nextQuestion) {
+      try {
+        await saveInterviewConversation(
+          applicationUuid,
+          `ai-${Date.now()}`,
+          'ai',
+          response.nextQuestion,
+          'introduction',
+          0
+        );
+      } catch (error) {
+        console.error('Error saving AI introduction:', error);
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error('Error fetching job application data:', error);
+
     // Fallback to original function without context
-    return await generateInterviewIntroduction(undefined);
+    const fallbackResponse = await generateInterviewIntroduction(undefined);
+
+    // Save fallback AI introduction to database
+    if (fallbackResponse.success && fallbackResponse.nextQuestion) {
+      try {
+        await saveInterviewConversation(
+          applicationUuid,
+          `ai-fallback-${Date.now()}`,
+          'ai',
+          fallbackResponse.nextQuestion,
+          'introduction',
+          0
+        );
+      } catch (saveError) {
+        console.error('Error saving fallback AI introduction:', saveError);
+      }
+    }
+
+    return fallbackResponse;
   }
 }

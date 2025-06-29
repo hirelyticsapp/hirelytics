@@ -20,6 +20,15 @@ export interface IQuestion {
   isAIGenerated?: boolean;
 }
 
+export interface IInterviewConversation {
+  messageId: string;
+  type: 'ai' | 'user';
+  content: string;
+  timestamp: Date;
+  phase?: string;
+  questionIndex?: number;
+}
+
 export interface IQuestionCategoryConfig {
   type: string; // e.g., 'technical-coding', 'behavioral', etc.
   numberOfQuestions: number; // Number of questions for this specific category
@@ -32,6 +41,7 @@ export interface IJobApplication extends Document {
   preferredLanguage: string;
   status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
   monitoringImages?: MonitoringImage;
+  interviewConversation?: IInterviewConversation[]; // Store all AI questions and user answers
   candidate: {
     email: string; // Email of the candidate
     name: string; // Name of the candidate
@@ -93,6 +103,16 @@ const JobApplicationSchema = new Schema<IJobApplication>(
         },
       ],
     },
+    interviewConversation: [
+      {
+        messageId: { type: String, required: true },
+        type: { type: String, enum: ['ai', 'user'], required: true },
+        content: { type: String, required: true },
+        timestamp: { type: Date, required: true },
+        phase: { type: String },
+        questionIndex: { type: Number },
+      },
+    ],
     candidate: {
       email: { type: String, required: true },
       name: { type: String, required: true },

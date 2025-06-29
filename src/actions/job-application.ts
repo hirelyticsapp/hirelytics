@@ -975,3 +975,167 @@ export const updateJobApplicationLanguage = async (
     throw new Error('Failed to update preferred language.');
   }
 };
+
+/**
+ * Save interview conversation message to the database
+ * @param applicationUuid - The UUID of the job application
+ * @param messageId - Unique identifier for the message
+ * @param type - Type of message ('ai' or 'user')
+ * @param content - The content of the message
+ * @param phase - Optional interview phase
+ * @param questionIndex - Optional question index
+ */
+export const saveInterviewConversation = async (
+  applicationUuid: string,
+  messageId: string,
+  type: 'ai' | 'user',
+  content: string,
+  phase?: string,
+  questionIndex?: number
+) => {
+  try {
+    await connectToDatabase();
+
+    if (!applicationUuid || !messageId || !type || !content) {
+      throw new Error('Application UUID, message ID, type, and content are required.');
+    }
+
+    const conversationMessage = {
+      messageId,
+      type,
+      content,
+      timestamp: new Date(),
+      ...(phase && { phase }),
+      ...(questionIndex !== undefined && { questionIndex }),
+    };
+
+    // Find the job application and add the conversation message
+    const result = await JobApplication.findOneAndUpdate(
+      { uuid: applicationUuid },
+      {
+        $push: {
+          interviewConversation: conversationMessage,
+        },
+      },
+      { new: true }
+    );
+
+    if (!result) {
+      throw new Error('Job application not found.');
+    }
+
+    return {
+      success: true,
+      message: 'Interview conversation saved successfully.',
+      conversationId: messageId,
+    };
+  } catch (error) {
+    console.error('Error saving interview conversation:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to save interview conversation.',
+    };
+  }
+};
+
+/**
+ * Save multiple interview conversation messages to the database (batch operation)
+ * @param applicationUuid - The UUID of the job application
+ * @param messages - Array of conversation messages to save
+ */
+export const saveInterviewConversationBatch = async (
+  applicationUuid: string,
+  messages: Array<{
+    messageId: string;
+    type: 'ai' | 'user';
+    content: string;
+    phase?: string;
+    questionIndex?: number;
+  }>
+) => {
+  try {
+    await connectToDatabase();
+
+    if (!applicationUuid || !messages || messages.length === 0) {
+      throw new Error('Application UUID and messages array are required.');
+    }
+
+    // Validate all messages
+    for (const message of messages) {
+      if (!message.messageId || !message.type || !message.content) {
+        throw new Error('Each message must have messageId, type, and content.');
+      }
+    }
+
+    const conversationMessages = messages.map((message) => ({
+      messageId: message.messageId,
+      type: message.type,
+      content: message.content,
+      timestamp: new Date(),
+      ...(message.phase && { phase: message.phase }),
+      ...(message.questionIndex !== undefined && { questionIndex: message.questionIndex }),
+    }));
+
+    // Find the job application and add all conversation messages
+    const result = await JobApplication.findOneAndUpdate(
+      { uuid: applicationUuid },
+      {
+        $push: {
+          interviewConversation: { $each: conversationMessages },
+        },
+      },
+      { new: true }
+    );
+
+    if (!result) {
+      throw new Error('Job application not found.');
+    }
+
+    return {
+      success: true,
+      message: 'Interview conversations saved successfully.',
+      savedCount: messages.length,
+    };
+  } catch (error) {
+    console.error('Error saving interview conversations batch:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to save interview conversations.',
+    };
+  }
+};
+
+/**
+ * Get interview conversation history from the database
+ * @param applicationUuid - The UUID of the job application
+ */
+export const getInterviewConversation = async (applicationUuid: string) => {
+  try {
+    await connectToDatabase();
+
+    if (!applicationUuid) {
+      throw new Error('Application UUID is required.');
+    }
+
+    const application = await JobApplication.findOne(
+      { uuid: applicationUuid },
+      { interviewConversation: 1, _id: 0 }
+    );
+
+    if (!application) {
+      throw new Error('Job application not found.');
+    }
+
+    return {
+      success: true,
+      conversations: application.interviewConversation || [],
+    };
+  } catch (error) {
+    console.error('Error fetching interview conversation:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch interview conversation.',
+      conversations: [],
+    };
+  }
+};
