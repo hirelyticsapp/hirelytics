@@ -173,7 +173,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     stopAllRecordings,
   } = useRecording();
 
-  const { transcriptMessages, stopRecognition, isAITyping } = useSpeechRecognition(
+  const { transcriptMessages, stopRecognition, isAITyping, interviewState } = useSpeechRecognition(
     isInterviewStarted,
     isMuted,
     applicationData.uuid
@@ -565,7 +565,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
             {/* Bottom Section - Chat (60% height) */}
             <div className="w-full h-[60%] bg-card border-t border-border">
-              <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
+              <ChatTranscript
+                messages={transcriptMessages}
+                isAITyping={isAITyping}
+                interviewState={interviewState}
+              />
             </div>
           </>
         ) : (
@@ -629,7 +633,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
             {/* Right Side - Chat Transcript - 40% width */}
             <div className="w-[40%] bg-card border-l border-border flex-shrink-0">
-              <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
+              <ChatTranscript
+                messages={transcriptMessages}
+                isAITyping={isAITyping}
+                interviewState={interviewState}
+              />
             </div>
           </>
         )}

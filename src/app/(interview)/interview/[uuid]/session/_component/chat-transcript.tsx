@@ -1,6 +1,7 @@
 import { Bot, Clock, User } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 
+import type { InterviewState } from '@/actions/interview-session';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -10,15 +11,25 @@ interface Message {
   type: 'user' | 'ai';
   text: string;
   timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered'; // Add message status
+  phase?: string;
+  questionIndex?: number;
+  categoryType?: string;
+  isRepeat?: boolean;
+  isClarification?: boolean;
+  status?: 'sending' | 'sent' | 'delivered';
 }
 
 interface ChatTranscriptProps {
   messages: Message[];
-  isAITyping?: boolean; // Add typing indicator prop
+  isAITyping?: boolean;
+  interviewState?: InterviewState | null;
 }
 
-const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages, isAITyping = false }) => {
+const ChatTranscript: React.FC<ChatTranscriptProps> = ({
+  messages,
+  isAITyping = false,
+  interviewState,
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -46,6 +57,25 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages, isAITyping = 
     }
   };
 
+  const getPhaseDisplay = (phase?: string) => {
+    switch (phase) {
+      case 'introduction':
+        return 'Introduction';
+      case 'candidate_intro':
+        return 'Your Introduction';
+      case 'questions':
+        return 'Interview Questions';
+      case 'final_questions':
+        return 'Your Questions';
+      case 'closing':
+        return 'Closing';
+      case 'completed':
+        return 'Completed';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-background border-l border-border overflow-hidden">
       {/* Header */}
@@ -56,6 +86,26 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages, isAITyping = 
           </div>
           <h3 className="text-lg font-semibold text-foreground">Live Transcript</h3>
         </div>
+
+        {/* Interview Progress */}
+        {interviewState && (
+          <div className="mb-2 space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                Phase: {getPhaseDisplay(interviewState.currentPhase)}
+              </span>
+              <span className="text-muted-foreground">
+                Questions: {interviewState.actualQuestionsAsked}/{interviewState.totalQuestions}
+              </span>
+            </div>
+            {interviewState.currentCategory && (
+              <div className="text-xs text-muted-foreground">
+                Category: {interviewState.currentCategory}
+              </div>
+            )}
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground">Real-time conversation transcription</p>
       </div>
 
@@ -144,6 +194,35 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({ messages, isAITyping = 
                           </div>
                         )}
                       </div>
+
+                      {/* Message Metadata */}
+                      {(message.phase ||
+                        message.categoryType ||
+                        message.isRepeat ||
+                        message.isClarification) && (
+                        <div className="mt-1 flex flex-wrap gap-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                          {message.phase && (
+                            <span className="px-1.5 py-0.5 bg-muted/50 rounded text-xs">
+                              {getPhaseDisplay(message.phase)}
+                            </span>
+                          )}
+                          {message.categoryType && (
+                            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded text-xs">
+                              {message.categoryType}
+                            </span>
+                          )}
+                          {message.isRepeat && (
+                            <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 rounded text-xs">
+                              Repeat
+                            </span>
+                          )}
+                          {message.isClarification && (
+                            <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 rounded text-xs">
+                              Clarification
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

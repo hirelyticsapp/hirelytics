@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-  type ConversationMessage,
-  generateAIInterviewResponseWithUuid,
-  generateInterviewIntroductionWithUuid,
-  type InterviewPhase,
-} from '@/actions/ai-interview';
+  getInterviewState,
+  initializeInterviewSession,
+  type InterviewState,
+  processInterviewResponse,
+} from '@/actions/interview-session';
 
 // Type declarations for Speech Recognition API
 declare global {
@@ -59,11 +59,29 @@ export interface TranscriptMessage {
   type: 'user' | 'ai';
   text: string;
   timestamp: Date;
+  phase?: string;
+  questionIndex?: number;
+  categoryType?: string;
+  isRepeat?: boolean;
+  isClarification?: boolean;
+}
+
+export interface ConversationHistoryItem {
+  messageId: string;
+  type: string;
+  content: string;
+  timestamp: string;
+  phase?: string;
+  questionIndex?: number;
+  questionId?: string;
+  categoryType?: string;
+  isRepeat?: boolean;
+  isClarification?: boolean;
 }
 
 /**
  * Custom hook to manage speech recognition and transcript messages
- * Handles speech-to-text conversion and AI response integration
+ * Handles speech-to-text conversion and AI response integration with proper interview state management
  */
 export const useSpeechRecognition = (
   isInterviewStarted: boolean,
@@ -73,85 +91,86 @@ export const useSpeechRecognition = (
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isAITyping, setIsAITyping] = useState(false);
   const [isRecognitionActive, setIsRecognitionActive] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationHistoryItem[]>([]);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
-  const [currentPhase, setCurrentPhase] = useState<InterviewPhase>({
-    current: 'introduction',
-    questionIndex: 0,
-    totalQuestions: 0, // Will be updated from fetched data
-  });
+  const [interviewState, setInterviewState] = useState<InterviewState | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Helper function to safely start recognition
-  const startRecognition = useCallback(
-    (recognitionInstance: SpeechRecognition) => {
-      if (!isMuted && isInterviewStarted && !isRecognitionActive) {
-        try {
-          recognitionInstance.start();
-        } catch (error) {
-          console.log('Recognition start error (likely already running):', error);
-        }
-      }
-    },
-    [isMuted, isInterviewStarted, isRecognitionActive]
-  );
+  // Load or initialize interview state when component mounts
+  const initializeOrLoadInterview = useCallback(async () => {
+    try {
+      // First try to load existing state
+      const existingState = await getInterviewState(applicationUuid);
 
-  // Generate initial AI introduction when interview starts
-  useEffect(() => {
-    if (!isInterviewStarted || transcriptMessages.length > 0) return;
+      if (existingState.success && existingState.interviewState) {
+        // Interview already exists, load it
+        setInterviewState(existingState.interviewState);
 
-    const initializeInterview = async () => {
-      try {
-        const response = await generateInterviewIntroductionWithUuid(applicationUuid);
+        // Convert conversation history to transcript messages
+        const messages: TranscriptMessage[] = (existingState.conversationHistory || []).map(
+          (msg, index) => ({
+            id: index + 1,
+            type: msg.type as 'user' | 'ai',
+            text: msg.content,
+            timestamp: new Date(msg.timestamp),
+            phase: msg.phase,
+            questionIndex: msg.questionIndex,
+            categoryType: msg.categoryType,
+            isRepeat: msg.isRepeat,
+            isClarification: msg.isClarification,
+          })
+        );
 
-        if (response.success && response.nextQuestion) {
-          const aiMessage: TranscriptMessage = {
-            id: Date.now(),
-            type: 'ai',
-            text: response.nextQuestion,
-            timestamp: new Date(),
-          };
+        setTranscriptMessages(messages);
+        setConversationHistory(existingState.conversationHistory || []);
+        setIsInitialized(true);
+      } else {
+        // No existing interview, initialize new one
+        const initResult = await initializeInterviewSession(applicationUuid, false);
 
-          setTranscriptMessages([aiMessage]);
-          setConversationHistory([
-            {
-              role: 'assistant',
-              content: response.nextQuestion,
+        if (initResult.success) {
+          setInterviewState(initResult.interviewState || null);
+
+          // Add initial AI message to transcript
+          if (initResult.response) {
+            const aiMessage: TranscriptMessage = {
+              id: 1,
+              type: 'ai',
+              text: initResult.response,
               timestamp: new Date(),
-            },
-          ]);
-
-          if (response.phase) {
-            setCurrentPhase(response.phase);
+              phase: initResult.interviewState?.currentPhase,
+              questionIndex: 0,
+            };
+            setTranscriptMessages([aiMessage]);
           }
+          setIsInitialized(true);
         }
-      } catch (error) {
-        console.error('Failed to generate interview introduction:', error);
-        // Generic fallback message when UUID fails
-        const fallbackText = `Hello! I'm Hirelytics AI and it's wonderful to meet you. I'll be conducting your interview today and I'm genuinely excited to learn about your background and experience. We have a structured conversation planned with thoughtful questions to assess your qualifications for this role. I'll provide feedback and encouragement throughout our discussion to help guide our conversation. To get us started, could you please share a brief introduction about yourself and what brings you to this opportunity? I'd love to hear your story.`;
-
-        const fallbackMessage: TranscriptMessage = {
-          id: Date.now(),
-          type: 'ai',
-          text: fallbackText,
-          timestamp: new Date(),
-        };
-        setTranscriptMessages([fallbackMessage]);
-        setConversationHistory([
-          {
-            role: 'assistant',
-            content: fallbackText,
-            timestamp: new Date(),
-          },
-        ]);
       }
-    };
+    } catch (error) {
+      console.error('Failed to initialize or load interview:', error);
+      // Fallback with generic introduction
+      const fallbackMessage: TranscriptMessage = {
+        id: 1,
+        type: 'ai',
+        text: `Hello! I'm your AI interviewer and I'm excited to learn about you today. Could you please start by introducing yourself?`,
+        timestamp: new Date(),
+        phase: 'introduction',
+        questionIndex: 0,
+      };
+      setTranscriptMessages([fallbackMessage]);
+      setIsInitialized(true);
+    }
+  }, [applicationUuid]);
 
-    initializeInterview();
-  }, [isInterviewStarted, applicationUuid, transcriptMessages.length]);
+  useEffect(() => {
+    if (isInterviewStarted && applicationUuid && !isInitialized) {
+      initializeOrLoadInterview();
+    }
+  }, [isInterviewStarted, applicationUuid, isInitialized, initializeOrLoadInterview]);
 
   // Initialize speech recognition when interview starts
   useEffect(() => {
-    if (!isInterviewStarted) return;
+    if (!isInterviewStarted || !isInitialized) return;
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -162,11 +181,10 @@ export const useSpeechRecognition = (
       const recognitionInstance = new SpeechRecognition();
 
       // Configure speech recognition settings
-      recognitionInstance.continuous = true; // Keep listening continuously
-      recognitionInstance.interimResults = true; // Get partial results while speaking
-      recognitionInstance.lang = 'en-IN'; // Set language to English (India)
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'en-IN';
 
-      // Some browsers may have additional properties for timeout handling
       if ('maxAlternatives' in recognitionInstance) {
         recognitionInstance.maxAlternatives = 1;
       }
@@ -175,9 +193,11 @@ export const useSpeechRecognition = (
       recognitionInstance.onresult = async (event) => {
         const latest = event.results[event.results.length - 1];
         if (latest.isFinal) {
-          const transcript = latest[0].transcript;
+          const transcript = latest[0].transcript.trim();
 
-          // Add user message to transcript and conversation history
+          if (transcript.length === 0) return;
+
+          // Add user message to transcript
           const userMessage: TranscriptMessage = {
             id: Date.now(),
             type: 'user',
@@ -187,100 +207,61 @@ export const useSpeechRecognition = (
 
           setTranscriptMessages((prev) => [...prev, userMessage]);
 
-          const userConversationMessage: ConversationMessage = {
-            role: 'user',
-            content: transcript,
-            timestamp: new Date(),
-          };
-
-          setConversationHistory((prev) => [...prev, userConversationMessage]);
-
-          // Generate AI response using server action
+          // Process the user response through the interview system
           setIsAITyping(true);
 
-          // Move to candidate introduction phase after the AI introduction
-          const nextPhase: InterviewPhase = {
-            current: 'candidate_intro',
-            questionIndex: 0,
-            totalQuestions: currentPhase.totalQuestions, // Use dynamic value from state
-          };
+          try {
+            const response = await processInterviewResponse(applicationUuid, transcript);
 
-          generateAIInterviewResponseWithUuid(
-            [...conversationHistory, userConversationMessage],
-            transcript,
-            applicationUuid,
-            nextPhase
-          )
-            .then(async (response) => {
-              if (response.success && response.nextQuestion) {
-                const aiMessage: TranscriptMessage = {
-                  id: Date.now() + 1,
-                  type: 'ai',
-                  text: response.nextQuestion,
-                  timestamp: new Date(),
-                };
-
-                setTranscriptMessages((prev) => [...prev, aiMessage]);
-
-                const aiConversationMessage: ConversationMessage = {
-                  role: 'assistant',
-                  content: response.nextQuestion,
-                  timestamp: new Date(),
-                };
-
-                setConversationHistory((prev) => [...prev, aiConversationMessage]);
-
-                // Update phase
-                if (response.phase) {
-                  setCurrentPhase(response.phase);
-                }
-              } else {
-                // Generic fallback response on error
-                const fallbackResponse = `Thank you so much for sharing that with me - I really appreciate your openness. Could you tell me more about your experience and what aspects of this role excite you the most? I'd love to hear more about what draws you to this opportunity.`;
-
-                const aiMessage: TranscriptMessage = {
-                  id: Date.now() + 1,
-                  type: 'ai',
-                  text: fallbackResponse,
-                  timestamp: new Date(),
-                };
-
-                setTranscriptMessages((prev) => [...prev, aiMessage]);
-
-                const aiConversationMessage: ConversationMessage = {
-                  role: 'assistant',
-                  content: fallbackResponse,
-                  timestamp: new Date(),
-                };
-
-                setConversationHistory((prev) => [...prev, aiConversationMessage]);
+            if (response.success) {
+              // Update interview state
+              if (response.interviewState) {
+                setInterviewState(response.interviewState);
               }
-              setIsAITyping(false);
-            })
-            .catch(async (error) => {
-              console.error('Error generating AI response:', error);
-              // Generic fallback response on error
-              const fallbackResponse = `That's really interesting, and I appreciate you taking the time to share that with me. I'd love to hear about a challenging situation you've encountered in your career and how you approached solving it. Could you walk me through a specific example that showcases your problem-solving skills?`;
 
-              const aiMessage: TranscriptMessage = {
+              // Add AI response to transcript
+              if (response.response) {
+                const aiMessage: TranscriptMessage = {
+                  id: Date.now() + 1,
+                  type: 'ai',
+                  text: response.response,
+                  timestamp: new Date(),
+                  phase: response.interviewState?.currentPhase,
+                  questionIndex: response.interviewState?.currentQuestionIndex,
+                  categoryType: response.interviewState?.currentCategory,
+                };
+
+                setTranscriptMessages((prev) => [...prev, aiMessage]);
+              }
+
+              // Refresh conversation history
+              const stateResult = await getInterviewState(applicationUuid);
+              if (stateResult.success) {
+                setConversationHistory(stateResult.conversationHistory || []);
+              }
+            } else {
+              // Handle error with fallback response
+              const errorMessage: TranscriptMessage = {
                 id: Date.now() + 1,
                 type: 'ai',
-                text: fallbackResponse,
+                text: "I apologize, but I'm having trouble processing your response. Could you please try again?",
                 timestamp: new Date(),
               };
-
-              setTranscriptMessages((prev) => [...prev, aiMessage]);
-
-              const aiConversationMessage: ConversationMessage = {
-                role: 'assistant',
-                content: fallbackResponse,
-                timestamp: new Date(),
-              };
-
-              setConversationHistory((prev) => [...prev, aiConversationMessage]);
-
-              setIsAITyping(false);
-            });
+              setTranscriptMessages((prev) => [...prev, errorMessage]);
+            }
+          } catch (error) {
+            console.error('Error processing interview response:', error);
+            // Generic fallback response
+            const fallbackMessage: TranscriptMessage = {
+              id: Date.now() + 1,
+              type: 'ai',
+              text: 'Thank you for sharing that. Could you tell me more about your experience with similar challenges?',
+              timestamp: new Date(),
+            };
+            setTranscriptMessages((prev) => [...prev, fallbackMessage]);
+          } finally {
+            setIsAITyping(false);
+          }
         }
       };
 
@@ -291,13 +272,8 @@ export const useSpeechRecognition = (
       };
 
       recognitionInstance.onerror = (event) => {
-        // Handle different types of speech recognition errors
         if (event.error === 'no-speech') {
-          // Silently handle no-speech errors - this is expected when user is quiet
-          // This prevents console errors from showing when user isn't speaking
           console.log('No speech detected, keeping recognition in standby mode');
-
-          // Don't restart immediately, let onend handle the restart to prevent conflicts
         } else if (event.error === 'audio-capture') {
           console.error('Audio capture error - please check microphone permissions');
           setIsRecognitionActive(false);
@@ -308,7 +284,6 @@ export const useSpeechRecognition = (
           console.error('Speech recognition not allowed - please enable microphone permissions');
           setIsRecognitionActive(false);
         } else {
-          // Only log other errors that aren't related to normal silence
           console.error('Speech recognition error:', event.error);
           setIsRecognitionActive(false);
         }
@@ -318,60 +293,61 @@ export const useSpeechRecognition = (
         console.log('Speech recognition ended');
         setIsRecognitionActive(false);
 
-        // Auto-restart recognition when it ends (unless muted or interview stopped)
+        // Auto-restart recognition when it ends (if not muted)
         if (!isMuted && isInterviewStarted) {
           setTimeout(() => {
-            startRecognition(recognitionInstance);
-          }, 500); // Quick restart
+            try {
+              recognitionInstance.start();
+            } catch (error) {
+              console.log('Recognition restart error:', error);
+            }
+          }, 500);
         }
       };
 
       setRecognition(recognitionInstance);
+
+      // Start recognition initially if not muted
+      if (!isMuted) {
+        setTimeout(() => {
+          try {
+            recognitionInstance.start();
+          } catch (error) {
+            console.log('Initial recognition start error:', error);
+          }
+        }, 100);
+      }
     } else {
       console.warn('Speech recognition not supported in this browser');
     }
+  }, [isInterviewStarted, isInitialized, applicationUuid, isMuted]);
 
-    // Cleanup: stop recognition when component unmounts
+  // Cleanup effect for recognition
+  useEffect(() => {
     return () => {
       if (recognition) {
         recognition.stop();
         setIsRecognitionActive(false);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInterviewStarted]);
+  }, [recognition]);
 
-  // Control speech recognition based on mute state
+  // Handle mute/unmute
   useEffect(() => {
-    if (recognition && isInterviewStarted) {
+    if (recognition) {
       if (isMuted) {
-        // Stop listening when muted
-        if (isRecognitionActive) {
-          recognition.stop();
+        recognition.stop();
+      } else if (isInterviewStarted && !isRecognitionActive) {
+        try {
+          recognition.start();
+        } catch (error) {
+          console.log('Mute toggle recognition start error:', error);
         }
-      } else {
-        // Start listening when unmuted (only if not already active)
-        startRecognition(recognition);
       }
     }
-  }, [isMuted, recognition, isRecognitionActive, isInterviewStarted, startRecognition]);
+  }, [isMuted, recognition, isInterviewStarted, isRecognitionActive]);
 
-  // Heartbeat mechanism to ensure recognition stays active
-  useEffect(() => {
-    if (!isInterviewStarted || isMuted || !recognition) return;
-
-    const heartbeatInterval = setInterval(() => {
-      // Check if recognition should be active but isn't
-      if (!isRecognitionActive && !isMuted && isInterviewStarted) {
-        console.log('Heartbeat: Restarting inactive recognition');
-        startRecognition(recognition);
-      }
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(heartbeatInterval);
-  }, [isInterviewStarted, isMuted, recognition, isRecognitionActive, startRecognition]);
-
-  // Stop speech recognition (cleanup)
+  // Stop speech recognition
   const stopRecognition = useCallback(() => {
     if (recognition) {
       recognition.stop();
@@ -394,7 +370,7 @@ export const useSpeechRecognition = (
   return {
     transcriptMessages,
     conversationHistory,
-    currentPhase,
+    interviewState,
     recognition,
     stopRecognition,
     addMessage,
