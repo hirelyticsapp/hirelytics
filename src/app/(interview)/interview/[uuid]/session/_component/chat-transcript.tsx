@@ -119,7 +119,10 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({
                   <Bot className="w-6 h-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Conversation will appear here as you speak
+                  AI interviewer will start the conversation
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Listen for the introduction and respond when ready
                 </p>
               </div>
             ) : (
@@ -161,7 +164,7 @@ const ChatTranscript: React.FC<ChatTranscriptProps> = ({
                           )}
                         >
                           <span className="text-xs font-medium text-foreground">
-                            {isUser ? 'You' : 'AI Interviewer'}
+                            {isUser ? 'Candidate' : 'AI Interviewer'}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {formatTime(message.timestamp)}
