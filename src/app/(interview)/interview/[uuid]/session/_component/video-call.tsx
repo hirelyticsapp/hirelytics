@@ -175,7 +175,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
   const { transcriptMessages, stopRecognition, isAITyping } = useSpeechRecognition(
     isInterviewStarted,
-    isMuted
+    isMuted,
+    applicationData.uuid
   );
 
   const {

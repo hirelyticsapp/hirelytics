@@ -1,5 +1,6 @@
 import { Crown, Flame, Rocket, Target, Zap } from 'lucide-react';
 
+import type { JobApplicationContext } from '@/actions/ai-interview';
 import { difficultyLevels } from '@/lib/constants/job-constants';
 
 /**
@@ -113,4 +114,63 @@ export function calculateTotalQuestions(
   categoryConfigs: Array<{ type: string; numberOfQuestions: number }>
 ) {
   return categoryConfigs.reduce((total, config) => total + config.numberOfQuestions, 0);
+}
+
+/**
+ * Transform job application database object into AI interview context
+ */
+export function transformJobApplicationToAIContext(
+  jobApplication: Record<string, unknown>
+): JobApplicationContext {
+  const app = jobApplication as {
+    candidate?: { name?: string; email?: string };
+    jobDetails?: {
+      title?: string;
+      description?: string;
+      skills?: string[];
+      requirements?: string;
+      benefits?: string;
+    };
+    instructionsForAi?: {
+      instruction?: string;
+      difficultyLevel?: 'easy' | 'normal' | 'hard';
+      questionMode?: 'manual' | 'ai-generated';
+      totalQuestions?: number;
+      categoryConfigs?: Array<{ type: string; numberOfQuestions: number }>;
+      questions?: Array<{
+        id: string;
+        type: string;
+        question: string;
+        isAIGenerated: boolean;
+      }>;
+    };
+    sessionInstruction?: { duration?: string };
+    preferredLanguage?: string;
+  };
+
+  return {
+    candidate: {
+      name: app.candidate?.name,
+      email: app.candidate?.email,
+    },
+    jobDetails: {
+      title: app.jobDetails?.title,
+      description: app.jobDetails?.description,
+      skills: app.jobDetails?.skills || [],
+      requirements: app.jobDetails?.requirements,
+      benefits: app.jobDetails?.benefits,
+    },
+    instructionsForAi: {
+      instruction: app.instructionsForAi?.instruction,
+      difficultyLevel: app.instructionsForAi?.difficultyLevel,
+      questionMode: app.instructionsForAi?.questionMode,
+      totalQuestions: app.instructionsForAi?.totalQuestions,
+      categoryConfigs: app.instructionsForAi?.categoryConfigs,
+      questions: app.instructionsForAi?.questions,
+    },
+    sessionInstruction: {
+      duration: app.sessionInstruction?.duration,
+    },
+    preferredLanguage: app.preferredLanguage,
+  };
 }

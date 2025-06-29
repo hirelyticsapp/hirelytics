@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import {
+  type ConversationMessage,
+  generateAIInterviewResponseWithUuid,
+  generateInterviewIntroductionWithUuid,
+  type InterviewPhase,
+} from '@/actions/ai-interview';
+
 // Type declarations for Speech Recognition API
 declare global {
   interface Window {
@@ -54,31 +61,76 @@ export interface TranscriptMessage {
 
 /**
  * Custom hook to manage speech recognition and transcript messages
- * Handles speech-to-text conversion and AI response simulation
+ * Handles speech-to-text conversion and AI response integration
  */
-export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boolean) => {
+export const useSpeechRecognition = (
+  isInterviewStarted: boolean,
+  isMuted: boolean,
+  applicationUuid: string
+) => {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isAITyping, setIsAITyping] = useState(false);
-  const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([
-    {
-      id: 1,
-      type: 'ai',
-      text: "Hello! Welcome to your interview. I'm excited to learn more about you and your experience. To get started, could you please introduce yourself and tell me a bit about your background?",
-      timestamp: new Date(Date.now() - 60000),
-    },
-    {
-      id: 2,
-      type: 'user',
-      text: 'Hello, nice to meet you! Thank you for this opportunity.',
-      timestamp: new Date(Date.now() - 30000),
-    },
-    {
-      id: 3,
-      type: 'ai',
-      text: "Great to meet you too! I can see you're ready to begin. Let's start with some questions about your experience and skills.",
-      timestamp: new Date(Date.now() - 10000),
-    },
-  ]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<InterviewPhase>({
+    current: 'introduction',
+    questionIndex: 0,
+    totalQuestions: 0, // Will be updated from fetched data
+  });
+
+  // Generate initial AI introduction when interview starts
+  useEffect(() => {
+    if (!isInterviewStarted || transcriptMessages.length > 0) return;
+
+    const initializeInterview = async () => {
+      try {
+        const response = await generateInterviewIntroductionWithUuid(applicationUuid);
+
+        if (response.success && response.nextQuestion) {
+          const aiMessage: TranscriptMessage = {
+            id: Date.now(),
+            type: 'ai',
+            text: response.nextQuestion,
+            timestamp: new Date(),
+          };
+
+          setTranscriptMessages([aiMessage]);
+          setConversationHistory([
+            {
+              role: 'assistant',
+              content: response.nextQuestion,
+              timestamp: new Date(),
+            },
+          ]);
+
+          if (response.phase) {
+            setCurrentPhase(response.phase);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to generate interview introduction:', error);
+        // Generic fallback message when UUID fails
+        const fallbackText = `Hello! I'm Hirelytics AI and it's wonderful to meet you. I'll be conducting your interview today and I'm genuinely excited to learn about your background and experience. We have a structured conversation planned with thoughtful questions to assess your qualifications for this role. I'll provide feedback and encouragement throughout our discussion to help guide our conversation. To get us started, could you please share a brief introduction about yourself and what brings you to this opportunity? I'd love to hear your story.`;
+
+        const fallbackMessage: TranscriptMessage = {
+          id: Date.now(),
+          type: 'ai',
+          text: fallbackText,
+          timestamp: new Date(),
+        };
+        setTranscriptMessages([fallbackMessage]);
+        setConversationHistory([
+          {
+            role: 'assistant',
+            content: fallbackText,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    };
+
+    initializeInterview();
+  }, [isInterviewStarted, applicationUuid, transcriptMessages.length]);
 
   // Initialize speech recognition when interview starts
   useEffect(() => {
@@ -103,49 +155,109 @@ export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boole
         if (latest.isFinal) {
           const transcript = latest[0].transcript;
 
-          // Add user message to transcript
-          setTranscriptMessages((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              type: 'user',
-              text: transcript,
-              timestamp: new Date(),
-            },
-          ]);
+          // Add user message to transcript and conversation history
+          const userMessage: TranscriptMessage = {
+            id: Date.now(),
+            type: 'user',
+            text: transcript,
+            timestamp: new Date(),
+          };
 
-          // Simulate AI response after a delay
+          setTranscriptMessages((prev) => [...prev, userMessage]);
+
+          const userConversationMessage: ConversationMessage = {
+            role: 'user',
+            content: transcript,
+            timestamp: new Date(),
+          };
+
+          setConversationHistory((prev) => [...prev, userConversationMessage]);
+
+          // Generate AI response using server action
           setIsAITyping(true);
-          setTimeout(
-            () => {
-              const aiResponses = [
-                "That's interesting! Can you tell me more about that experience?",
-                'Great point! How do you think that skill would apply to this role?',
-                'Thank you for sharing that. What challenges did you face in that situation?',
-                'Excellent! Can you walk me through your thought process on that?',
-                'I see. What would you say was the most valuable lesson you learned from that?',
-                'That sounds like a valuable experience. How did you measure your success?',
-                'Interesting approach! What alternative solutions did you consider?',
-                'Good example! How do you stay updated with the latest developments in that area?',
-                'Thank you for that insight. Can you give me another example?',
-                'That demonstrates good problem-solving. What tools or resources did you use?',
-              ];
 
-              const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+          // Move to candidate introduction phase after the AI introduction
+          const nextPhase: InterviewPhase = {
+            current: 'candidate_intro',
+            questionIndex: 0,
+            totalQuestions: currentPhase.totalQuestions, // Use dynamic value from state
+          };
 
-              setTranscriptMessages((prev) => [
-                ...prev,
-                {
+          generateAIInterviewResponseWithUuid(
+            [...conversationHistory, userConversationMessage],
+            transcript,
+            applicationUuid,
+            nextPhase
+          )
+            .then((response) => {
+              if (response.success && response.nextQuestion) {
+                const aiMessage: TranscriptMessage = {
                   id: Date.now() + 1,
                   type: 'ai',
-                  text: randomResponse,
+                  text: response.nextQuestion,
                   timestamp: new Date(),
-                },
-              ]);
+                };
+
+                setTranscriptMessages((prev) => [...prev, aiMessage]);
+
+                const aiConversationMessage: ConversationMessage = {
+                  role: 'assistant',
+                  content: response.nextQuestion,
+                  timestamp: new Date(),
+                };
+
+                setConversationHistory((prev) => [...prev, aiConversationMessage]);
+
+                // Update phase
+                if (response.phase) {
+                  setCurrentPhase(response.phase);
+                }
+              } else {
+                // Generic fallback response on error
+                const fallbackResponse = `Thank you so much for sharing that with me - I really appreciate your openness. Could you tell me more about your experience and what aspects of this role excite you the most? I'd love to hear more about what draws you to this opportunity.`;
+
+                const aiMessage: TranscriptMessage = {
+                  id: Date.now() + 1,
+                  type: 'ai',
+                  text: fallbackResponse,
+                  timestamp: new Date(),
+                };
+
+                setTranscriptMessages((prev) => [...prev, aiMessage]);
+
+                const aiConversationMessage: ConversationMessage = {
+                  role: 'assistant',
+                  content: fallbackResponse,
+                  timestamp: new Date(),
+                };
+
+                setConversationHistory((prev) => [...prev, aiConversationMessage]);
+              }
               setIsAITyping(false);
-            },
-            1500 + Math.random() * 1000
-          ); // Vary the delay between 1.5-2.5 seconds
+            })
+            .catch((error) => {
+              console.error('Error generating AI response:', error);
+              // Generic fallback response on error
+              const fallbackResponse = `That's really interesting, and I appreciate you taking the time to share that with me. I'd love to hear about a challenging situation you've encountered in your career and how you approached solving it. Could you walk me through a specific example that showcases your problem-solving skills?`;
+
+              const aiMessage: TranscriptMessage = {
+                id: Date.now() + 1,
+                type: 'ai',
+                text: fallbackResponse,
+                timestamp: new Date(),
+              };
+
+              setTranscriptMessages((prev) => [...prev, aiMessage]);
+
+              const aiConversationMessage: ConversationMessage = {
+                role: 'assistant',
+                content: fallbackResponse,
+                timestamp: new Date(),
+              };
+
+              setConversationHistory((prev) => [...prev, aiConversationMessage]);
+              setIsAITyping(false);
+            });
         }
       };
 
@@ -210,6 +322,8 @@ export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boole
 
   return {
     transcriptMessages,
+    conversationHistory,
+    currentPhase,
     recognition,
     stopRecognition,
     addMessage,
