@@ -376,9 +376,11 @@ export function JobReviewStep({
                 className="bg-green-600 hover:bg-green-700"
               >
                 {isPublishing
-                  ? 'Publishing...'
+                  ? isPublishedJob
+                    ? 'Updating...'
+                    : 'Publishing...'
                   : isPublishedJob
-                    ? 'Update Published Job'
+                    ? 'Update'
                     : 'Publish Job'}
                 <Eye className="h-4 w-4 ml-2" />
               </Button>

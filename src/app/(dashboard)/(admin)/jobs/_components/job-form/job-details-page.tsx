@@ -61,7 +61,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
     description: !!initialData?.description,
     interviewConfig: !!initialData?.interviewConfig,
     questionsConfig: !!initialData?.questionsConfig,
-    review: false, // Review step is never pre-completed
+    review: initialData?.status === 'published', // Mark review as completed if job is published
   });
   const [jobData, setJobData] = useState(initialData || {});
 
@@ -149,6 +149,13 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
           ...prev,
           status: 'published',
         }));
+
+        // Mark review step as completed when job is published
+        setCompletionStatus((prev) => ({
+          ...prev,
+          review: true,
+        }));
+
         router.push('/jobs');
       } else {
         console.error('Error publishing job:', result.error);
@@ -171,6 +178,13 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
           ...prev,
           status: 'draft',
         }));
+
+        // Unmark review step when job is saved as draft
+        setCompletionStatus((prev) => ({
+          ...prev,
+          review: false,
+        }));
+
         router.push('/jobs');
       } else {
         console.error('Error saving draft:', result.error);
@@ -227,6 +241,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             organizationName={jobData.organizationName}
             description={jobData.description}
             requirements={jobData.requirements}
+            isMockJob={jobData.jobType === 'mock'}
             onComplete={(data: InterviewConfig, shouldMoveNext?: boolean) =>
               handleStepComplete('interviewConfig', data, shouldMoveNext)
             }
@@ -293,7 +308,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
 
       {/* Mobile-friendly step navigation */}
       <div className="w-full px-6 py-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
+        <div className="flex w-full mb-6">
           {allSteps.map((step, index) => {
             const isCompleted = completionStatus[step.key as keyof JobStepCompletion];
             const isCurrent = currentStep === index;
@@ -304,28 +319,30 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
                 key={step.id}
                 onClick={() => handleStepChange(index)}
                 disabled={!canAccess}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border-b-2 transition-colors text-sm font-medium ${
                   isCurrent
-                    ? 'bg-primary text-primary-foreground border-primary'
+                    ? 'border-primary text-primary bg-primary/5'
                     : isCompleted
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
+                      ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20'
                       : canAccess
-                        ? 'hover:bg-muted border-border'
-                        : 'opacity-50 cursor-not-allowed border-border'
+                        ? 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50'
+                        : 'border-transparent text-muted-foreground/50 cursor-not-allowed'
                 }`}
               >
                 <div
-                  className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                     isCompleted
                       ? 'bg-green-500 text-white'
                       : isCurrent
-                        ? 'bg-primary-foreground text-primary'
-                        : 'bg-muted text-muted-foreground'
+                        ? 'bg-primary text-primary-foreground'
+                        : canAccess
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-muted-foreground/20 text-muted-foreground/50'
                   }`}
                 >
-                  {isCompleted ? <Check className="h-3 w-3" /> : step.id + 1}
+                  {isCompleted ? <Check className="h-3 w-3" /> : index + 1}
                 </div>
-                <span className="hidden sm:inline">{step.title}</span>
+                <span className="hidden sm:inline text-center">{step.title}</span>
               </button>
             );
           })}

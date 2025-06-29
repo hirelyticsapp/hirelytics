@@ -38,6 +38,7 @@ interface InterviewConfigStepProps {
   organizationName?: string;
   description?: string;
   requirements?: string;
+  isMockJob?: boolean;
   onComplete: (data: InterviewConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
   isSaving?: boolean;
@@ -52,6 +53,7 @@ export function InterviewConfigStep({
   organizationName,
   description,
   requirements,
+  isMockJob = false,
   onComplete,
   onPrevious,
   isSaving = false,
@@ -62,10 +64,10 @@ export function InterviewConfigStep({
       duration: initialData?.duration ?? 60,
       instructions: initialData?.instructions ?? '',
       difficultyLevel: initialData?.difficultyLevel ?? 'normal',
-      screenMonitoring: initialData?.screenMonitoring ?? false,
+      screenMonitoring: isMockJob ? false : (initialData?.screenMonitoring ?? false),
       screenMonitoringMode: initialData?.screenMonitoringMode ?? 'photo',
       screenMonitoringInterval: initialData?.screenMonitoringInterval ?? 30,
-      cameraMonitoring: initialData?.cameraMonitoring ?? false,
+      cameraMonitoring: isMockJob ? false : (initialData?.cameraMonitoring ?? false),
       cameraMonitoringMode: initialData?.cameraMonitoringMode ?? 'photo',
       cameraMonitoringInterval: initialData?.cameraMonitoringInterval ?? 30,
     },
@@ -107,10 +109,10 @@ export function InterviewConfigStep({
       duration: Number(data.duration) || 60,
       instructions: String(data.instructions || ''),
       difficultyLevel: data.difficultyLevel || 'normal',
-      screenMonitoring: Boolean(data.screenMonitoring),
+      screenMonitoring: isMockJob ? false : Boolean(data.screenMonitoring),
       screenMonitoringMode: data.screenMonitoringMode || 'photo',
       screenMonitoringInterval: Number(data.screenMonitoringInterval) || 30,
-      cameraMonitoring: Boolean(data.cameraMonitoring),
+      cameraMonitoring: isMockJob ? false : Boolean(data.cameraMonitoring),
       cameraMonitoringMode: data.cameraMonitoringMode || 'photo',
       cameraMonitoringInterval: Number(data.cameraMonitoringInterval) || 30,
     };
@@ -310,13 +312,15 @@ export function InterviewConfigStep({
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Monitoring System</h3>
                 <p className="text-sm text-muted-foreground">
-                  Configure how candidates will be monitored during the interview
+                  {isMockJob
+                    ? 'Monitoring is disabled for mock interviews to provide a practice environment'
+                    : 'Configure how candidates will be monitored during the interview'}
                 </p>
               </div>
 
               <div className="grid gap-4">
                 {/* Screen Monitoring */}
-                <Card>
+                <Card className={isMockJob ? 'opacity-50' : ''}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -326,7 +330,9 @@ export function InterviewConfigStep({
                         <div>
                           <FormLabel className="text-base font-medium">Screen Monitoring</FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Monitor candidate&apos;s screen during the interview
+                            {isMockJob
+                              ? 'Screen monitoring is disabled for mock interviews'
+                              : "Monitor candidate's screen during the interview"}
                           </p>
                         </div>
                       </div>
@@ -336,14 +342,18 @@ export function InterviewConfigStep({
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={isMockJob}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
                       />
                     </div>
 
-                    {watchScreenMonitoring && (
+                    {watchScreenMonitoring && !isMockJob && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
                         <FormField
                           control={form.control}
@@ -397,7 +407,7 @@ export function InterviewConfigStep({
                 </Card>
 
                 {/* Camera Monitoring */}
-                <Card>
+                <Card className={isMockJob ? 'opacity-50' : ''}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -407,7 +417,9 @@ export function InterviewConfigStep({
                         <div>
                           <FormLabel className="text-base font-medium">Camera Monitoring</FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Monitor candidate through their camera
+                            {isMockJob
+                              ? 'Camera monitoring is disabled for mock interviews'
+                              : 'Monitor candidate through their camera'}
                           </p>
                         </div>
                       </div>
@@ -417,14 +429,18 @@ export function InterviewConfigStep({
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={isMockJob}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
                       />
                     </div>
 
-                    {watchCameraMonitoring && (
+                    {watchCameraMonitoring && !isMockJob && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
                         <FormField
                           control={form.control}

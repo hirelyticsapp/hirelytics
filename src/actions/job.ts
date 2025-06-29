@@ -248,15 +248,23 @@ export async function updateJobInterviewConfig(jobId: string, data: InterviewCon
   try {
     await connectToDatabase();
 
+    // First, check if this is a mock job
+    const existingJob = await Job.findById(jobId);
+    if (!existingJob) {
+      return { success: false, error: 'Job not found' };
+    }
+
+    const isMockJob = existingJob.jobType === 'mock';
+
     // Sanitize the data to prevent circular references and ensure clean object
     const sanitizedData = {
       duration: Number(data.duration),
       instructions: data.instructions || '',
       difficultyLevel: data.difficultyLevel,
-      screenMonitoring: Boolean(data.screenMonitoring),
+      screenMonitoring: isMockJob ? false : Boolean(data.screenMonitoring),
       screenMonitoringMode: data.screenMonitoringMode,
       screenMonitoringInterval: Number(data.screenMonitoringInterval),
-      cameraMonitoring: Boolean(data.cameraMonitoring),
+      cameraMonitoring: isMockJob ? false : Boolean(data.cameraMonitoring),
       cameraMonitoringMode: data.cameraMonitoringMode,
       cameraMonitoringInterval: Number(data.cameraMonitoringInterval),
     };
@@ -444,6 +452,7 @@ export async function getJobById(jobId: string) {
         currency: plainJob.currency,
         skills: plainJob.skills || [],
         status: plainJob.status,
+        jobType: plainJob.jobType || 'regular',
         expiryDate: plainJob.expiryDate,
         interviewConfig: plainJob.interviewConfig || null,
         questionsConfig: plainJob.questionsConfig || null,
@@ -1149,31 +1158,27 @@ export async function generateInterviewInstructions(
       .filter(Boolean)
       .join('\n\n');
 
-    const prompt = `Generate comprehensive interview instructions for a **${jobTitle}** position${organizationContext} in the **${industry}** industry, located in **${location}**. 
+    const prompt = `Generate concise interview instructions for a ${jobTitle} position${organizationContext} in the ${industry} industry, located in ${location}. 
 
-Key Skills Required: ${skillsText}
+Key Skills: ${skillsText}
 
-${contextInfo ? `Additional Context:\n${contextInfo}\n` : ''}
+${contextInfo ? `Context:\n${contextInfo}\n` : ''}
 
-Please provide professional interview instructions that include:
+Create short, professional interview instructions (200-300 words) that cover:
+- Welcome message and interview overview
+- What will be evaluated (focus on: ${skillsText})
+- Interview format and duration
+- Basic preparation tips
+- Technical requirements (camera, microphone, internet)
 
-1. **Welcome Message**: A warm, professional greeting for candidates
-2. **Interview Overview**: What the candidate can expect during the interview
-3. **Technical Requirements**: Any technical setup or requirements
-4. **Assessment Areas**: What skills and competencies will be evaluated (focus on: ${skillsText})
-5. **Format and Duration**: Structure of the interview process
-6. **Preparation Guidelines**: How candidates should prepare
-7. **Evaluation Criteria**: What interviewers will be looking for
-8. **Next Steps**: What happens after the interview
+Keep it:
+- Clear and concise
+- Professional but friendly
+- Specific to ${jobTitle} in ${industry}
+- Easy to read without complex formatting
+${organizationName ? `- Mention ${organizationName} appropriately` : ''}
 
-Make the instructions:
-- Professional and welcoming
-- Specific to ${jobTitle} role in ${industry}
-- Clear and easy to understand
-- Comprehensive but not overwhelming
-${organizationName ? `- Reflect ${organizationName}'s professional standards` : ''}
-
-Format the response as clear, structured text with proper headings and bullet points.`;
+Use simple text format without markdown, bullet points, or complex headings. Keep total length between 200-300 words.`;
 
     const result = await callAI({
       provider: 'google',
@@ -1201,72 +1206,17 @@ Format the response as clear, structured text with proper headings and bullet po
     const companyContext = organizationName ? ` at ${organizationName}` : '';
     const skillsText = skills.join(', ');
 
-    const fallbackInstructions = `# Interview Instructions - ${jobTitle}${companyContext}
+    const fallbackInstructions = `Welcome to the ${jobTitle} interview${companyContext} in ${location}. We're excited to learn about your experience in ${industry}.
 
-## Welcome
+This interview will assess your technical skills, particularly in ${skillsText}, along with your problem-solving abilities and communication skills. The session typically lasts 45-60 minutes and includes an introduction, technical discussion, and time for your questions.
 
-Welcome to the interview process for the **${jobTitle}** position${companyContext} in ${location}. We're excited to learn more about your qualifications and experience in the **${industry}** industry.
+Please ensure you have a stable internet connection, working camera and microphone, and a quiet environment. Before the interview, review the job requirements focusing on ${skills.slice(0, 2).join(' and ')}, and prepare examples of relevant projects you've worked on.
 
-## Interview Overview
+We'll evaluate your technical competency, problem-solving approach, and how well you communicate complex concepts. This is also an opportunity for you to ask questions about the role and our team.
 
-This interview is designed to assess your technical skills, problem-solving abilities, and cultural fit for our ${jobTitle} role. The session will focus on your expertise in **${skills.slice(0, 3).join(', ')}** and other relevant technologies.
+After the interview, we'll review your performance and provide feedback within 3-5 business days. We look forward to our conversation and learning more about your background in ${industry}.
 
-## Technical Requirements
-
-- Ensure you have a stable internet connection
-- Test your camera and microphone beforehand
-- Have a quiet, well-lit environment ready
-- Keep a notepad and pen handy for any notes
-
-## Assessment Areas
-
-During this interview, we will evaluate:
-
-- **Technical Skills**: Your proficiency in ${skillsText}
-- **Problem-Solving**: How you approach complex challenges in ${industry}
-- **Communication**: Your ability to explain technical concepts clearly
-- **Experience**: Relevant background and accomplishments
-- **Cultural Fit**: Alignment with our team values and work style
-
-## Interview Format
-
-- **Duration**: Approximately 45-60 minutes
-- **Structure**: 
-  - Introduction and background (5-10 minutes)
-  - Technical discussion and questions (30-40 minutes)
-  - Your questions about the role and company (10-15 minutes)
-
-## Preparation Guidelines
-
-To prepare for this interview:
-
-- Review the job description and required skills: ${skillsText}
-- Prepare examples of your work with ${skills.slice(0, 2).join(' and ')}
-- Think about challenges you've solved in ${industry}
-- Prepare thoughtful questions about the role and our team
-- Review your resume and be ready to discuss your experience
-
-## Evaluation Criteria
-
-We will assess candidates based on:
-
-- Technical competency in required skills
-- Problem-solving approach and methodology
-- Communication clarity and professionalism
-- Relevant experience and achievements
-- Enthusiasm for the role and industry
-- Ability to work in a collaborative environment
-
-## Next Steps
-
-After the interview:
-
-- We will review your performance with our team
-- Feedback will be provided within 3-5 business days
-- Successful candidates will be contacted for next steps
-- Feel free to reach out if you have any questions
-
-Good luck with your interview! We look forward to our conversation.`;
+Good luck with your interview!`;
 
     return {
       success: true,

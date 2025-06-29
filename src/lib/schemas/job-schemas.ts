@@ -104,5 +104,6 @@ export type InterviewConfig = z.infer<typeof interviewConfigSchema>;
 export type QuestionsConfig = z.infer<typeof questionsConfigSchema>;
 export type CompleteJob = z.infer<typeof completeJobSchema> & {
   organizationName?: string;
+  jobType?: 'regular' | 'mock';
 };
 export type JobStepCompletion = z.infer<typeof jobStepCompletionSchema>;
