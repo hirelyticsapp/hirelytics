@@ -19,10 +19,12 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives?: number;
   start(): void;
   stop(): void;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onstart: (() => void) | null;
+  onend: (() => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
 }
 
@@ -70,6 +72,7 @@ export const useSpeechRecognition = (
 ) => {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [isRecognitionActive, setIsRecognitionActive] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
   const [currentPhase, setCurrentPhase] = useState<InterviewPhase>({
@@ -77,6 +80,20 @@ export const useSpeechRecognition = (
     questionIndex: 0,
     totalQuestions: 0, // Will be updated from fetched data
   });
+
+  // Helper function to safely start recognition
+  const startRecognition = useCallback(
+    (recognitionInstance: SpeechRecognition) => {
+      if (!isMuted && isInterviewStarted && !isRecognitionActive) {
+        try {
+          recognitionInstance.start();
+        } catch (error) {
+          console.log('Recognition start error (likely already running):', error);
+        }
+      }
+    },
+    [isMuted, isInterviewStarted, isRecognitionActive]
+  );
 
   // Generate initial AI introduction when interview starts
   useEffect(() => {
@@ -148,6 +165,11 @@ export const useSpeechRecognition = (
       recognitionInstance.continuous = true; // Keep listening continuously
       recognitionInstance.interimResults = true; // Get partial results while speaking
       recognitionInstance.lang = 'en-IN'; // Set language to English (India)
+
+      // Some browsers may have additional properties for timeout handling
+      if ('maxAlternatives' in recognitionInstance) {
+        recognitionInstance.maxAlternatives = 1;
+      }
 
       // Handle speech recognition results
       recognitionInstance.onresult = (event) => {
@@ -264,10 +286,43 @@ export const useSpeechRecognition = (
       // Handle speech recognition events
       recognitionInstance.onstart = () => {
         console.log('Speech recognition started');
+        setIsRecognitionActive(true);
       };
 
       recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
+        // Handle different types of speech recognition errors
+        if (event.error === 'no-speech') {
+          // Silently handle no-speech errors - this is expected when user is quiet
+          // This prevents console errors from showing when user isn't speaking
+          console.log('No speech detected, keeping recognition in standby mode');
+
+          // Don't restart immediately, let onend handle the restart to prevent conflicts
+        } else if (event.error === 'audio-capture') {
+          console.error('Audio capture error - please check microphone permissions');
+          setIsRecognitionActive(false);
+        } else if (event.error === 'network') {
+          console.error('Network error during speech recognition');
+          setIsRecognitionActive(false);
+        } else if (event.error === 'not-allowed') {
+          console.error('Speech recognition not allowed - please enable microphone permissions');
+          setIsRecognitionActive(false);
+        } else {
+          // Only log other errors that aren't related to normal silence
+          console.error('Speech recognition error:', event.error);
+          setIsRecognitionActive(false);
+        }
+      };
+
+      recognitionInstance.onend = () => {
+        console.log('Speech recognition ended');
+        setIsRecognitionActive(false);
+
+        // Auto-restart recognition when it ends (unless muted or interview stopped)
+        if (!isMuted && isInterviewStarted) {
+          setTimeout(() => {
+            startRecognition(recognitionInstance);
+          }, 500); // Quick restart
+        }
       };
 
       setRecognition(recognitionInstance);
@@ -279,6 +334,7 @@ export const useSpeechRecognition = (
     return () => {
       if (recognition) {
         recognition.stop();
+        setIsRecognitionActive(false);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -286,25 +342,39 @@ export const useSpeechRecognition = (
 
   // Control speech recognition based on mute state
   useEffect(() => {
-    if (recognition) {
+    if (recognition && isInterviewStarted) {
       if (isMuted) {
         // Stop listening when muted
-        recognition.stop();
-      } else {
-        // Start listening when unmuted
-        try {
-          recognition.start();
-        } catch (error) {
-          console.log('Speech recognition already running or error:', error);
+        if (isRecognitionActive) {
+          recognition.stop();
         }
+      } else {
+        // Start listening when unmuted (only if not already active)
+        startRecognition(recognition);
       }
     }
-  }, [isMuted, recognition]);
+  }, [isMuted, recognition, isRecognitionActive, isInterviewStarted, startRecognition]);
+
+  // Heartbeat mechanism to ensure recognition stays active
+  useEffect(() => {
+    if (!isInterviewStarted || isMuted || !recognition) return;
+
+    const heartbeatInterval = setInterval(() => {
+      // Check if recognition should be active but isn't
+      if (!isRecognitionActive && !isMuted && isInterviewStarted) {
+        console.log('Heartbeat: Restarting inactive recognition');
+        startRecognition(recognition);
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [isInterviewStarted, isMuted, recognition, isRecognitionActive, startRecognition]);
 
   // Stop speech recognition (cleanup)
   const stopRecognition = useCallback(() => {
     if (recognition) {
       recognition.stop();
+      setIsRecognitionActive(false);
     }
   }, [recognition]);
 
