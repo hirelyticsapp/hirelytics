@@ -34,10 +34,18 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useGenerateInterviewQuestionsMutation } from '@/hooks/use-job-queries';
 import { industriesData } from '@/lib/constants/industry-data';
 import { questionModes } from '@/lib/constants/job-constants';
 import { type QuestionsConfig, questionsConfigSchema } from '@/lib/schemas/job-schemas';
-import { type DummyQuestion, simulateAIGeneration } from '@/lib/utils/dummy-ai-questions';
+
+// Define the question type locally
+type GeneratedQuestion = {
+  id: string;
+  type: string;
+  question: string;
+  isAIGenerated: boolean;
+};
 import { calculateTotalQuestions } from '@/lib/utils/job-utils';
 
 interface QuestionsConfigStepProps {
@@ -45,6 +53,7 @@ interface QuestionsConfigStepProps {
   industry: string;
   jobTitle?: string;
   difficultyLevel?: string;
+  organizationName?: string;
   onComplete: (data: QuestionsConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
   isSaving?: boolean;
@@ -55,6 +64,7 @@ export function QuestionsConfigStep({
   industry,
   jobTitle,
   difficultyLevel,
+  organizationName,
   onComplete,
   onPrevious,
   isSaving = false,
@@ -62,15 +72,17 @@ export function QuestionsConfigStep({
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>(
     initialData?.questionTypes || []
   );
-  const [manualQuestions, setManualQuestions] = useState<Record<string, DummyQuestion[]>>(
-    // Convert existing questions to DummyQuestion format
-    initialData?.questions?.reduce((acc: Record<string, DummyQuestion[]>, q) => {
+  const [manualQuestions, setManualQuestions] = useState<Record<string, GeneratedQuestion[]>>(
+    // Convert existing questions to GeneratedQuestion format
+    initialData?.questions?.reduce((acc: Record<string, GeneratedQuestion[]>, q) => {
       if (!acc[q.type]) acc[q.type] = [];
-      acc[q.type].push(q as DummyQuestion);
+      acc[q.type].push(q as GeneratedQuestion);
       return acc;
     }, {}) || {}
   );
   const [generatingQuestions, setGeneratingQuestions] = useState<Record<string, boolean>>({});
+
+  const generateInterviewQuestionsMutation = useGenerateInterviewQuestionsMutation();
 
   const form = useForm<QuestionsConfig>({
     resolver: zodResolver(questionsConfigSchema),
@@ -155,18 +167,26 @@ export function QuestionsConfigStep({
     setGeneratingQuestions((prev) => ({ ...prev, [questionType]: true }));
 
     try {
-      const result = await simulateAIGeneration(
+      const result = await generateInterviewQuestionsMutation.mutateAsync({
         industry,
-        jobTitle || '',
-        difficultyLevel || 'normal',
-        questionType,
-        numberOfQuestions
-      );
+        jobTitle: jobTitle || '',
+        difficultyLevel: difficultyLevel || 'normal',
+        questionTypes: [questionType],
+        totalQuestions: numberOfQuestions,
+        organizationName,
+      });
 
       if (result.success) {
+        const typedQuestions = result.data.map((q) => ({
+          id: q.id,
+          type: q.type,
+          question: q.question,
+          isAIGenerated: q.isAIGenerated ?? true,
+        }));
+
         setManualQuestions((prev) => ({
           ...prev,
-          [questionType]: result.data,
+          [questionType]: typedQuestions,
         }));
       }
     } catch (error) {
@@ -186,7 +206,7 @@ export function QuestionsConfigStep({
       return;
     }
 
-    const newQuestion: DummyQuestion = {
+    const newQuestion: GeneratedQuestion = {
       id: `manual_${questionType}_${Date.now()}`,
       type: questionType,
       question: '',

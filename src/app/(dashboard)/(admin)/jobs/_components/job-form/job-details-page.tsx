@@ -208,6 +208,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             industry={jobData.industry || ''}
             skills={jobData.skills}
             location={jobData.location}
+            organizationName={jobData.organizationName}
             onComplete={(data: JobDescription, shouldMoveNext?: boolean) =>
               handleStepComplete('description', data, shouldMoveNext)
             }
@@ -219,6 +220,13 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
         return (
           <InterviewConfigStep
             initialData={jobData.interviewConfig}
+            jobTitle={jobData.title}
+            industry={jobData.industry || ''}
+            skills={jobData.skills}
+            location={jobData.location}
+            organizationName={jobData.organizationName}
+            description={jobData.description}
+            requirements={jobData.requirements}
             onComplete={(data: InterviewConfig, shouldMoveNext?: boolean) =>
               handleStepComplete('interviewConfig', data, shouldMoveNext)
             }
@@ -233,6 +241,7 @@ export function JobDetailsPage({ jobId, initialData }: JobDetailsPageProps) {
             industry={jobData.industry || ''}
             jobTitle={jobData.title}
             difficultyLevel={jobData.interviewConfig?.difficultyLevel}
+            organizationName={jobData.organizationName}
             onComplete={(data: QuestionsConfig, shouldMoveNext?: boolean) =>
               handleStepComplete('questionsConfig', data, shouldMoveNext)
             }

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, ChevronLeft, ChevronRight, Loader2, Monitor, Save } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Loader2, Monitor, Save, Sparkles } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
@@ -24,12 +24,20 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useGenerateInterviewInstructionsMutation } from '@/hooks/use-job-queries';
 import { difficultyLevels } from '@/lib/constants/job-constants';
 import { type InterviewConfig, interviewConfigSchema } from '@/lib/schemas/job-schemas';
 import { getDifficultyLevelInfo } from '@/lib/utils/job-utils';
 
 interface InterviewConfigStepProps {
   initialData?: Partial<InterviewConfig>;
+  jobTitle?: string;
+  industry?: string;
+  skills?: string[];
+  location?: string;
+  organizationName?: string;
+  description?: string;
+  requirements?: string;
   onComplete: (data: InterviewConfig, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
   isSaving?: boolean;
@@ -37,6 +45,13 @@ interface InterviewConfigStepProps {
 
 export function InterviewConfigStep({
   initialData,
+  jobTitle,
+  industry,
+  skills,
+  location,
+  organizationName,
+  description,
+  requirements,
   onComplete,
   onPrevious,
   isSaving = false,
@@ -55,6 +70,32 @@ export function InterviewConfigStep({
       cameraMonitoringInterval: initialData?.cameraMonitoringInterval ?? 30,
     },
   });
+
+  const generateInterviewInstructionsMutation = useGenerateInterviewInstructionsMutation();
+
+  const generateInstructions = async () => {
+    if (!jobTitle || !industry || !skills || !location) {
+      return;
+    }
+
+    try {
+      const result = await generateInterviewInstructionsMutation.mutateAsync({
+        jobTitle,
+        industry,
+        skills,
+        location,
+        organizationName,
+        description,
+        requirements,
+      });
+
+      if (result.success) {
+        form.setValue('instructions', result.data.instructions);
+      }
+    } catch (error) {
+      console.error('Failed to generate instructions:', error);
+    }
+  };
 
   const watchScreenMonitoring = form.watch('screenMonitoring');
   const watchCameraMonitoring = form.watch('cameraMonitoring');
@@ -218,17 +259,46 @@ export function InterviewConfigStep({
               name="instructions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Interview Instructions</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Interview Instructions</FormLabel>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateInstructions}
+                      disabled={
+                        generateInterviewInstructionsMutation.isPending ||
+                        !jobTitle ||
+                        !industry ||
+                        !skills ||
+                        !location
+                      }
+                      className="gap-2"
+                    >
+                      {generateInterviewInstructionsMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3" />
+                          AI Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Provide any specific instructions for candidates before they start the interview..."
-                      className="min-h-[100px]"
+                      className="min-h-[120px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
                     Optional instructions that will be shown to candidates before the interview
-                    starts
+                    starts. Click &quot;AI Generate&quot; to create instructions based on the job
+                    details.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

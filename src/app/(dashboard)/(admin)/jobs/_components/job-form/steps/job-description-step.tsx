@@ -25,6 +25,7 @@ interface JobDescriptionStepProps {
   industry?: string;
   skills?: string[];
   location?: string;
+  organizationName?: string;
   onComplete: (data: JobDescription, shouldMoveNext?: boolean) => Promise<void>;
   onPrevious: () => void;
   isSaving?: boolean;
@@ -36,6 +37,7 @@ export function JobDescriptionStep({
   industry,
   skills,
   location,
+  organizationName,
   onComplete,
   onPrevious,
   isSaving = false,
@@ -62,6 +64,7 @@ export function JobDescriptionStep({
         industry,
         skills,
         location,
+        organizationName,
       });
 
       if (result.success) {

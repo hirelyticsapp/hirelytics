@@ -32,6 +32,10 @@ export const env = createEnv({
     AWS_S3_BUCKET_NAME: z.string().min(1, 'AWS S3 Bucket Name is required'),
     AWS_BUCKET_NAME: z.string().min(1, 'AWS Bucket Name is required'),
     AWS_REGION: z.string().default('us-east-1'),
+
+    // AI API Keys
+    GOOGLE_API_KEY: z.string().optional(),
+    OPENAI_API_KEY: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_DOMAIN: z.string().default('hirelytics.app'),
@@ -66,5 +70,7 @@ export const env = createEnv({
     AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
     AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
     AWS_REGION: process.env.AWS_REGION,
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
 });

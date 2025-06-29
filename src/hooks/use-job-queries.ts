@@ -8,6 +8,7 @@ import {
   createJobFromBasicDetails,
   deleteJob,
   fetchJobs,
+  generateInterviewInstructions,
   generateInterviewQuestions,
   generateJobDescription,
   getJobById,
@@ -166,7 +167,15 @@ export function useGenerateJobDescriptionMutation() {
       industry: string;
       skills: string[];
       location: string;
-    }) => generateJobDescription(params.jobTitle, params.industry, params.skills, params.location),
+      organizationName?: string;
+    }) =>
+      generateJobDescription(
+        params.jobTitle,
+        params.industry,
+        params.skills,
+        params.location,
+        params.organizationName
+      ),
   });
 }
 
@@ -179,13 +188,39 @@ export function useGenerateInterviewQuestionsMutation() {
       difficultyLevel: string;
       questionTypes: string[];
       totalQuestions: number;
+      organizationName?: string;
     }) =>
       generateInterviewQuestions(
         params.industry,
         params.jobTitle,
         params.difficultyLevel,
         params.questionTypes,
-        params.totalQuestions
+        params.totalQuestions,
+        params.organizationName
+      ),
+  });
+}
+
+// Generate Interview Instructions Mutation
+export function useGenerateInterviewInstructionsMutation() {
+  return useMutation({
+    mutationFn: (params: {
+      jobTitle: string;
+      industry: string;
+      skills: string[];
+      location: string;
+      organizationName?: string;
+      description?: string;
+      requirements?: string;
+    }) =>
+      generateInterviewInstructions(
+        params.jobTitle,
+        params.industry,
+        params.skills,
+        params.location,
+        params.organizationName,
+        params.description,
+        params.requirements
       ),
   });
 }

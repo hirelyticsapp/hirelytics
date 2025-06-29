@@ -102,5 +102,7 @@ export type BasicJobDetails = z.infer<typeof basicJobDetailsSchema>;
 export type JobDescription = z.infer<typeof jobDescriptionSchema>;
 export type InterviewConfig = z.infer<typeof interviewConfigSchema>;
 export type QuestionsConfig = z.infer<typeof questionsConfigSchema>;
-export type CompleteJob = z.infer<typeof completeJobSchema>;
+export type CompleteJob = z.infer<typeof completeJobSchema> & {
+  organizationName?: string;
+};
 export type JobStepCompletion = z.infer<typeof jobStepCompletionSchema>;

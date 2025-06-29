@@ -116,12 +116,22 @@ export async function createJobFromBasicDetails(data: BasicJobDetails, recruiter
 
     const savedJob = (await job.save()) as IJob;
 
+    // Populate the organization name for the response
+    const populatedJob = await Job.findById(savedJob.id).populate('organizationId', 'name').lean();
+    const organizationName =
+      populatedJob?.organizationId &&
+      typeof populatedJob.organizationId === 'object' &&
+      'name' in populatedJob.organizationId
+        ? (populatedJob.organizationId as { name: string }).name
+        : '';
+
     return {
       success: true,
       data: {
         id: savedJob.id,
         title: savedJob.title,
         organizationId: savedJob.organizationId.toString(),
+        organizationName,
         industry: savedJob.industry,
         location: savedJob.location,
         salary: savedJob.salary,
@@ -427,6 +437,7 @@ export async function getJobById(jobId: string) {
         benefits: plainJob.benefits,
         organizationId:
           plainJob.organizationId?._id?.toString() || plainJob.organizationId?.toString(),
+        organizationName: plainJob.organizationId?.name || '',
         industry: plainJob.industry,
         location: plainJob.location,
         salary: plainJob.salary,
@@ -449,85 +460,201 @@ export async function getJobById(jobId: string) {
   }
 }
 
-// Hardcoded AI content generation functions (placeholder for real AI)
+// AI-powered job description generation
 export async function generateJobDescription(
   jobTitle: string,
   industry: string,
   skills: string[],
-  location: string
+  location: string,
+  organizationName?: string
 ) {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  try {
+    const { callAI } = await import('@/ai');
 
-  const hardcodedDescriptions = {
-    'Software Engineer': `We are seeking a talented Software Engineer to join our dynamic team. You will be responsible for designing, developing, and maintaining software applications that meet our business requirements.
+    const organizationContext = organizationName ? ` at **${organizationName}**` : '';
+    const prompt = `Generate a comprehensive job description for a **${jobTitle}** position${organizationContext} in the **${industry}** industry, located in **${location}**. The role specifically requires expertise in: ${skills.join(', ')}.
 
-Key Responsibilities:
-• Design and develop scalable software solutions
-• Collaborate with cross-functional teams to define and implement new features
-• Write clean, maintainable, and efficient code
-• Participate in code reviews and maintain coding standards
-• Debug and resolve technical issues
-• Stay updated with latest technology trends`,
+Please provide the response in the following JSON format with markdown-formatted content:
+{
+  "description": "A detailed job description in markdown format including role overview, key responsibilities, and how the specific skills (${skills.join(', ')}) will be used.${organizationName ? ` Make sure to mention ${organizationName} as the hiring company.` : ''} Include proper markdown formatting with headers, bullet points, and emphasis.",
+  "requirements": "Required qualifications, experience, and skills in markdown format. Specifically mention the required skills: ${skills.join(', ')} and location: ${location}. Use bullet points and proper markdown formatting.",
+  "benefits": "Benefits package and what makes this role attractive in markdown format.${organizationName ? ` Highlight benefits specific to working at ${organizationName}.` : ''} Include location-specific benefits for ${location}. Use bullet points and proper markdown formatting."
+}
 
-    'Product Manager': `We are looking for an experienced Product Manager to drive product strategy and execution. You will work closely with engineering, design, and business teams to deliver innovative products.
+Guidelines:
+- Use proper markdown formatting (##, ###, -, *, **, etc.)
+- Make the content professional, engaging, and specific to ${jobTitle} in ${industry}
+${organizationName ? `- Prominently feature ${organizationName} as an attractive employer` : ''}
+- Prominently feature the required skills: ${skills.join(', ')}
+- Include location-specific information for ${location}
+- Use bullet points (-) for lists
+- Use bold (**text**) for emphasis on key terms
+- Include relevant industry terminology for ${industry}
+- Make each section substantial and informative`;
 
-Key Responsibilities:
-• Define product vision and strategy
-• Manage product roadmap and prioritization
-• Conduct market research and competitive analysis
-• Work with engineering teams on product development
-• Analyze product performance and user feedback
-• Collaborate with stakeholders across the organization`,
+    const result = await callAI({
+      provider: 'google',
+      options: {
+        prompt,
+        temperature: 0.7,
+      },
+    });
 
-    'Data Scientist': `Join our data science team to extract insights from complex datasets and build predictive models that drive business decisions.
+    if (result.text) {
+      try {
+        // Try to parse the AI response as JSON
+        const cleanedResponse = result.text.replace(/```json\n?|\n?```/g, '').trim();
+        const parsedData = JSON.parse(cleanedResponse);
 
-Key Responsibilities:
-• Analyze large datasets to identify trends and patterns
-• Build machine learning models and algorithms
-• Create data visualizations and reports
-• Collaborate with business teams to understand requirements
-• Deploy models to production environments
-• Stay current with data science best practices`,
-  };
+        return {
+          success: true,
+          data: {
+            description: parsedData.description || '',
+            requirements: parsedData.requirements || '',
+            benefits: parsedData.benefits || '',
+          },
+        };
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
 
-  const defaultDescription = `We are seeking a qualified professional to join our team in the ${industry} industry. This role offers an exciting opportunity to work with cutting-edge technologies and contribute to our company's growth.
+        // Fallback: create markdown-formatted content from raw text
+        const _text = result.text;
+        const companyContext = organizationName ? ` at **${organizationName}**` : '';
+        const companyMention = organizationName ? `${organizationName} ` : 'our ';
 
-Key Responsibilities:
-• Execute core responsibilities related to ${jobTitle} role
-• Collaborate with team members and stakeholders
-• Contribute to project planning and execution
-• Maintain high standards of quality and performance
-• Participate in continuous learning and development
-• Support company objectives and values`;
+        const description = `## About the Role
 
-  const description =
-    hardcodedDescriptions[jobTitle as keyof typeof hardcodedDescriptions] || defaultDescription;
+We are seeking a talented **${jobTitle}** to join ${companyMention}dynamic team in **${location}**. This role${companyContext} offers an exciting opportunity to work with cutting-edge technologies and contribute to innovative projects in the **${industry}** industry.
 
-  const requirements = `• Bachelor's degree in relevant field or equivalent experience
-• ${Math.floor(Math.random() * 5) + 2}+ years of experience in ${industry}
-• Strong knowledge of ${skills.slice(0, 3).join(', ')}
-• Excellent communication and teamwork skills
-• Problem-solving mindset and attention to detail
-• Experience with modern development practices`;
+### Key Responsibilities
+- Lead development and implementation of solutions using **${skills.slice(0, 3).join('**, **')}**
+- Collaborate with cross-functional teams to deliver high-quality products
+- Apply expertise in **${skills.join('**, **')}** to solve complex problems
+- Drive innovation and technical excellence in ${industry}
+- Mentor team members and contribute to technical decisions`;
 
-  const benefits = `• Competitive salary and performance bonuses
-• Comprehensive health, dental, and vision insurance
-• 401(k) retirement plan with company matching
-• Flexible work arrangements and remote work options
-• Professional development opportunities
-• Generous PTO policy
-• Modern office environment in ${location}
-• Team building activities and company events`;
+        const requirements = `## Required Qualifications
 
-  return {
-    success: true,
-    data: {
-      description,
-      requirements,
-      benefits,
-    },
-  };
+### Essential Skills
+- **${skills.join('**\n- **')}**
+- Strong background in **${industry}** industry
+- Excellent communication and collaboration skills
+- Problem-solving mindset and analytical thinking
+
+### Experience Requirements
+- 3+ years of professional experience in ${industry}
+- Proven track record working with **${skills.slice(0, 3).join('**, **')}**
+- Experience working in **${location}** or similar markets
+- Strong understanding of modern development practices
+
+### Location
+- Based in or willing to relocate to **${location}**
+- Familiarity with ${location} market and business environment preferred`;
+
+        const benefits = `## What We Offer
+
+### Compensation & Benefits
+- **Competitive salary** commensurate with experience
+- **Performance-based bonuses** and incentives
+- Comprehensive **health, dental, and vision insurance**
+- **401(k) retirement plan** with company matching
+
+### Professional Development
+- **${skills.slice(0, 2).join(' and ')} certification** opportunities
+- Conference attendance and training budget
+- Mentorship programs and career growth paths
+- Access to latest tools and technologies
+
+### Work Environment
+- **${location}-based** modern office with state-of-the-art facilities
+- **Flexible work arrangements** and remote work options
+- Collaborative and inclusive team culture${organizationName ? ` at ${organizationName}` : ''}
+- Opportunity to work on cutting-edge ${industry} projects${organizationName ? ` with ${organizationName}'s innovative team` : ''}`;
+
+        return {
+          success: true,
+          data: { description, requirements, benefits },
+        };
+      }
+    }
+
+    throw new Error('No response from AI service');
+  } catch (error) {
+    console.error('Error generating job description:', error);
+
+    // Enhanced fallback with markdown formatting and all input parameters
+    const companyContext = organizationName ? ` at **${organizationName}**` : '';
+    const companyMention = organizationName ? `${organizationName}'s ` : "our company's ";
+
+    const description = `## About the Role
+
+We are seeking a talented **${jobTitle}** to join our dynamic team in **${location}**. This role${companyContext} offers an exciting opportunity to work with cutting-edge technologies and contribute to ${companyMention}growth in the **${industry}** industry.
+
+### Key Responsibilities
+- Lead development and implementation of solutions using **${skills.slice(0, 3).join('**, **')}**
+- Collaborate with cross-functional teams to deliver high-quality products
+- Apply expertise in **${skills.join('**, **')}** to drive innovation
+- Contribute to technical decisions and architectural planning
+- Mentor junior team members and share knowledge
+
+### What You'll Do
+- Work with **${skills.slice(0, 2).join(' and ')}** on a daily basis
+- Solve complex problems in the ${industry} domain
+- Participate in code reviews and maintain high standards
+- Collaborate with stakeholders across the organization`;
+
+    const requirements = `## Required Qualifications
+
+### Technical Skills (Required)
+- **${skills.join('**\n- **')}**
+
+### Experience Requirements  
+- **3+ years** of professional experience in ${industry}
+- Proven expertise with **${skills.slice(0, 3).join('**, **')}**
+- Strong problem-solving and analytical skills
+- Excellent communication and teamwork abilities
+
+### Education & Certifications
+- Bachelor's degree in relevant field or equivalent experience
+- Industry certifications in **${skills.slice(0, 2).join(' or ')}** preferred
+- Continuous learning mindset and adaptability
+
+### Location Requirements
+- Based in or willing to relocate to **${location}**
+- Authorized to work in the location
+- Familiarity with ${location} business environment is a plus`;
+
+    const benefits = `## Benefits & Perks
+
+### Compensation Package
+- **Competitive salary** with performance bonuses
+- **Equity participation** in company growth
+- Annual salary reviews and merit increases
+- **${location}** market-competitive compensation
+
+### Health & Wellness
+- **Comprehensive health insurance** (medical, dental, vision)
+- **Life and disability insurance**
+- Mental health support and wellness programs
+- **Gym membership** or wellness stipend
+
+### Professional Growth
+- **${skills.slice(0, 2).join(' and ')} training** opportunities
+- Conference attendance and learning budget
+- Mentorship programs and career development
+- Access to latest tools and technologies
+
+### Work-Life Balance
+- **Flexible work arrangements** and remote options
+- **Generous PTO** policy and paid holidays
+- **${location}** office with modern amenities
+- Team building events and company culture activities${organizationName ? ` at ${organizationName}` : ''}`;
+
+    return {
+      success: true,
+      data: { description, requirements, benefits },
+    };
+  }
 }
 
 export async function generateInterviewQuestions(
@@ -535,109 +662,198 @@ export async function generateInterviewQuestions(
   jobTitle: string,
   difficultyLevel: string,
   questionTypes: string[],
-  totalQuestions: number
+  totalQuestions: number,
+  organizationName?: string
 ) {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    const { callAI } = await import('@/ai');
 
-  const hardcodedQuestions = {
-    'technical-coding': [
-      {
-        id: '1',
-        type: 'technical-coding',
-        question:
-          'Implement a function to find the longest palindromic substring in a given string.',
-        isAIGenerated: true,
-      },
-      {
-        id: '2',
-        type: 'technical-coding',
-        question:
-          'Design a data structure that supports insert, delete, and getRandom operations in O(1) time.',
-        isAIGenerated: true,
-      },
-      {
-        id: '3',
-        type: 'technical-coding',
-        question: 'Write a function to merge two sorted linked lists.',
-        isAIGenerated: true,
-      },
-    ],
-    behavioral: [
-      {
-        id: '4',
-        type: 'behavioral',
-        question:
-          'Tell me about a time when you had to work with a difficult team member. How did you handle the situation?',
-        isAIGenerated: true,
-      },
-      {
-        id: '5',
-        type: 'behavioral',
-        question:
-          'Describe a challenging project you worked on. What made it challenging and how did you overcome the obstacles?',
-        isAIGenerated: true,
-      },
-      {
-        id: '6',
-        type: 'behavioral',
-        question:
-          'Give me an example of a time when you had to learn a new technology or skill quickly.',
-        isAIGenerated: true,
-      },
-    ],
-    'system-design': [
-      {
-        id: '7',
-        type: 'system-design',
-        question:
-          'Design a URL shortening service like bit.ly. Consider scalability, reliability, and performance.',
-        isAIGenerated: true,
-      },
-      {
-        id: '8',
-        type: 'system-design',
-        question: 'How would you design a chat system that supports millions of users?',
-        isAIGenerated: true,
-      },
-    ],
-    'domain-specific': [
-      {
-        id: '9',
-        type: 'domain-specific',
-        question: `What are the key challenges in ${industry} that technology can help solve?`,
-        isAIGenerated: true,
-      },
-      {
-        id: '10',
-        type: 'domain-specific',
-        question: `How would you approach ${jobTitle.toLowerCase()} responsibilities in a fast-paced environment?`,
-        isAIGenerated: true,
-      },
-    ],
-  };
+    const organizationContext = organizationName ? ` at ${organizationName}` : '';
+    const prompt = `Generate ${totalQuestions} interview questions for a ${jobTitle} position${organizationContext} in the ${industry} industry with ${difficultyLevel} difficulty level.
 
-  const allQuestions: Array<{
-    id: string;
-    type: string;
-    question: string;
-    isAIGenerated?: boolean;
-  }> = [];
+Question types to include: ${questionTypes.join(', ')}
 
-  questionTypes.forEach((type) => {
-    if (hardcodedQuestions[type as keyof typeof hardcodedQuestions]) {
-      allQuestions.push(...hardcodedQuestions[type as keyof typeof hardcodedQuestions]);
+Please provide the response in JSON format as an array of questions:
+[
+  {
+    "id": "unique_id",
+    "type": "question_type_from_list",
+    "question": "The actual interview question",
+    "isAIGenerated": true
+  }
+]
+
+Distribute the questions evenly across the specified types. Make sure questions are:
+- Relevant to the ${jobTitle} role in ${industry}
+- Appropriate for ${difficultyLevel} difficulty level
+- Professional and well-structured
+- Specific and actionable${organizationName ? `\n- Can reference ${organizationName} as the hiring company when appropriate` : ''}
+
+Question type guidelines:
+- technical-coding: Programming problems, algorithms, data structures
+- technical-system: System design, architecture questions
+- behavioral: STAR method questions about past experiences
+- domain-specific: Industry-specific knowledge and scenarios
+- analytical: Problem-solving, case studies, logical reasoning`;
+
+    const result = await callAI({
+      provider: 'google',
+      options: {
+        prompt,
+        temperature: 0.8,
+        maxTokens: 2000,
+      },
+    });
+
+    if (result.text) {
+      try {
+        // Try to parse the AI response as JSON
+        const cleanedResponse = result.text.replace(/```json\n?|\n?```/g, '').trim();
+        const parsedQuestions = JSON.parse(cleanedResponse);
+
+        // Validate the response structure
+        if (Array.isArray(parsedQuestions)) {
+          const validQuestions = parsedQuestions
+            .filter((q) => q.question && q.type && questionTypes.includes(q.type))
+            .map((q, index) => ({
+              id: q.id || `ai_${Date.now()}_${index}`,
+              type: q.type,
+              question: q.question,
+              isAIGenerated: true,
+            }))
+            .slice(0, totalQuestions);
+
+          if (validQuestions.length > 0) {
+            return {
+              success: true,
+              data: validQuestions,
+            };
+          }
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+      }
     }
-  });
 
-  // Shuffle and take required number of questions
-  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-  const selectedQuestions = shuffled.slice(0, totalQuestions);
+    // Fallback: generate questions if AI fails
+    throw new Error('AI response parsing failed');
+  } catch (error) {
+    console.error('Error generating interview questions:', error);
 
-  return {
-    success: true,
-    data: selectedQuestions,
-  };
+    // Fallback to hardcoded questions
+    const hardcodedQuestions = {
+      'technical-coding': [
+        {
+          id: '1',
+          type: 'technical-coding',
+          question:
+            'Implement a function to find the longest palindromic substring in a given string.',
+          isAIGenerated: false,
+        },
+        {
+          id: '2',
+          type: 'technical-coding',
+          question:
+            'Design a data structure that supports insert, delete, and getRandom operations in O(1) time.',
+          isAIGenerated: false,
+        },
+        {
+          id: '3',
+          type: 'technical-coding',
+          question: 'Write a function to merge two sorted linked lists.',
+          isAIGenerated: false,
+        },
+      ],
+      behavioral: [
+        {
+          id: '4',
+          type: 'behavioral',
+          question:
+            'Tell me about a time when you had to work with a difficult team member. How did you handle the situation?',
+          isAIGenerated: false,
+        },
+        {
+          id: '5',
+          type: 'behavioral',
+          question:
+            'Describe a challenging project you worked on. What made it challenging and how did you overcome the obstacles?',
+          isAIGenerated: false,
+        },
+        {
+          id: '6',
+          type: 'behavioral',
+          question:
+            'Give me an example of a time when you had to learn a new technology or skill quickly.',
+          isAIGenerated: false,
+        },
+      ],
+      'technical-system': [
+        {
+          id: '7',
+          type: 'technical-system',
+          question:
+            'Design a URL shortening service like bit.ly. Consider scalability, reliability, and performance.',
+          isAIGenerated: false,
+        },
+        {
+          id: '8',
+          type: 'technical-system',
+          question: 'How would you design a chat system that supports millions of users?',
+          isAIGenerated: false,
+        },
+      ],
+      'domain-specific': [
+        {
+          id: '9',
+          type: 'domain-specific',
+          question: `What are the key challenges in ${industry} that technology can help solve?`,
+          isAIGenerated: false,
+        },
+        {
+          id: '10',
+          type: 'domain-specific',
+          question: `How would you approach ${jobTitle.toLowerCase()} responsibilities in a fast-paced environment?`,
+          isAIGenerated: false,
+        },
+      ],
+      analytical: [
+        {
+          id: '11',
+          type: 'analytical',
+          question: 'Walk me through how you would analyze and solve a complex business problem.',
+          isAIGenerated: false,
+        },
+        {
+          id: '12',
+          type: 'analytical',
+          question: 'How do you prioritize multiple competing tasks with limited resources?',
+          isAIGenerated: false,
+        },
+      ],
+    };
+
+    const allQuestions: Array<{
+      id: string;
+      type: string;
+      question: string;
+      isAIGenerated?: boolean;
+    }> = [];
+
+    questionTypes.forEach((type) => {
+      if (hardcodedQuestions[type as keyof typeof hardcodedQuestions]) {
+        allQuestions.push(...hardcodedQuestions[type as keyof typeof hardcodedQuestions]);
+      }
+    });
+
+    // Shuffle and take required number of questions
+    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, totalQuestions);
+
+    return {
+      success: true,
+      data: selectedQuestions,
+    };
+  }
 }
 
 // New server action for updating job basic details
@@ -667,11 +883,19 @@ export async function updateJobBasicDetails(jobId: string, data: BasicJobDetails
         },
       },
       { new: true }
-    );
+    ).populate('organizationId', 'name');
 
     if (!updatedJob) {
       return { success: false, error: 'Job not found' };
     }
+
+    // Extract organization name with proper typing
+    const organizationName =
+      updatedJob.organizationId &&
+      typeof updatedJob.organizationId === 'object' &&
+      'name' in updatedJob.organizationId
+        ? (updatedJob.organizationId as { name: string }).name
+        : '';
 
     return {
       success: true,
@@ -679,6 +903,7 @@ export async function updateJobBasicDetails(jobId: string, data: BasicJobDetails
         id: updatedJob.id,
         title: updatedJob.title,
         organizationId: updatedJob.organizationId.toString(),
+        organizationName,
         industry: updatedJob.industry,
         location: updatedJob.location,
         salary: updatedJob.salary,
@@ -867,9 +1092,187 @@ export async function createMockInterview(data: BasicJobDetails, recruiterId?: s
     });
 
     const savedJob = await mockJob.save();
-    return { success: true, jobId: savedJob.id };
+
+    // Populate the organization name for the response
+    const populatedJob = await Job.findById(savedJob.id).populate('organizationId', 'name').lean();
+    const organizationName =
+      populatedJob?.organizationId &&
+      typeof populatedJob.organizationId === 'object' &&
+      'name' in populatedJob.organizationId
+        ? (populatedJob.organizationId as { name: string }).name
+        : '';
+
+    return {
+      success: true,
+      jobId: savedJob.id,
+      data: {
+        id: savedJob.id,
+        title: savedJob.title,
+        organizationId: savedJob.organizationId.toString(),
+        organizationName,
+        industry: savedJob.industry,
+        location: savedJob.location,
+        salary: savedJob.salary,
+        currency: savedJob.currency,
+        skills: savedJob.skills,
+        status: savedJob.status,
+        jobType: savedJob.jobType,
+        expiryDate: savedJob.expiryDate,
+        createdAt: savedJob.createdAt,
+      },
+    };
   } catch (error) {
     console.error('Error creating mock interview:', error);
     return { success: false, error: 'Failed to create mock interview' };
+  }
+}
+
+// AI-powered interview instructions generation
+export async function generateInterviewInstructions(
+  jobTitle: string,
+  industry: string,
+  skills: string[],
+  location: string,
+  organizationName?: string,
+  description?: string,
+  requirements?: string
+) {
+  try {
+    const { callAI } = await import('@/ai');
+
+    const organizationContext = organizationName ? ` at **${organizationName}**` : '';
+    const skillsText = skills.join(', ');
+    const contextInfo = [
+      description ? `Job Description: ${description.substring(0, 500)}...` : '',
+      requirements ? `Requirements: ${requirements.substring(0, 300)}...` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const prompt = `Generate comprehensive interview instructions for a **${jobTitle}** position${organizationContext} in the **${industry}** industry, located in **${location}**. 
+
+Key Skills Required: ${skillsText}
+
+${contextInfo ? `Additional Context:\n${contextInfo}\n` : ''}
+
+Please provide professional interview instructions that include:
+
+1. **Welcome Message**: A warm, professional greeting for candidates
+2. **Interview Overview**: What the candidate can expect during the interview
+3. **Technical Requirements**: Any technical setup or requirements
+4. **Assessment Areas**: What skills and competencies will be evaluated (focus on: ${skillsText})
+5. **Format and Duration**: Structure of the interview process
+6. **Preparation Guidelines**: How candidates should prepare
+7. **Evaluation Criteria**: What interviewers will be looking for
+8. **Next Steps**: What happens after the interview
+
+Make the instructions:
+- Professional and welcoming
+- Specific to ${jobTitle} role in ${industry}
+- Clear and easy to understand
+- Comprehensive but not overwhelming
+${organizationName ? `- Reflect ${organizationName}'s professional standards` : ''}
+
+Format the response as clear, structured text with proper headings and bullet points.`;
+
+    const result = await callAI({
+      provider: 'google',
+      options: {
+        prompt,
+        temperature: 0.6,
+        maxTokens: 1500,
+      },
+    });
+
+    if (result.text) {
+      return {
+        success: true,
+        data: {
+          instructions: result.text.trim(),
+        },
+      };
+    }
+
+    throw new Error('No response from AI service');
+  } catch (error) {
+    console.error('Error generating interview instructions:', error);
+
+    // Enhanced fallback with job-specific content
+    const companyContext = organizationName ? ` at ${organizationName}` : '';
+    const skillsText = skills.join(', ');
+
+    const fallbackInstructions = `# Interview Instructions - ${jobTitle}${companyContext}
+
+## Welcome
+
+Welcome to the interview process for the **${jobTitle}** position${companyContext} in ${location}. We're excited to learn more about your qualifications and experience in the **${industry}** industry.
+
+## Interview Overview
+
+This interview is designed to assess your technical skills, problem-solving abilities, and cultural fit for our ${jobTitle} role. The session will focus on your expertise in **${skills.slice(0, 3).join(', ')}** and other relevant technologies.
+
+## Technical Requirements
+
+- Ensure you have a stable internet connection
+- Test your camera and microphone beforehand
+- Have a quiet, well-lit environment ready
+- Keep a notepad and pen handy for any notes
+
+## Assessment Areas
+
+During this interview, we will evaluate:
+
+- **Technical Skills**: Your proficiency in ${skillsText}
+- **Problem-Solving**: How you approach complex challenges in ${industry}
+- **Communication**: Your ability to explain technical concepts clearly
+- **Experience**: Relevant background and accomplishments
+- **Cultural Fit**: Alignment with our team values and work style
+
+## Interview Format
+
+- **Duration**: Approximately 45-60 minutes
+- **Structure**: 
+  - Introduction and background (5-10 minutes)
+  - Technical discussion and questions (30-40 minutes)
+  - Your questions about the role and company (10-15 minutes)
+
+## Preparation Guidelines
+
+To prepare for this interview:
+
+- Review the job description and required skills: ${skillsText}
+- Prepare examples of your work with ${skills.slice(0, 2).join(' and ')}
+- Think about challenges you've solved in ${industry}
+- Prepare thoughtful questions about the role and our team
+- Review your resume and be ready to discuss your experience
+
+## Evaluation Criteria
+
+We will assess candidates based on:
+
+- Technical competency in required skills
+- Problem-solving approach and methodology
+- Communication clarity and professionalism
+- Relevant experience and achievements
+- Enthusiasm for the role and industry
+- Ability to work in a collaborative environment
+
+## Next Steps
+
+After the interview:
+
+- We will review your performance with our team
+- Feedback will be provided within 3-5 business days
+- Successful candidates will be contacted for next steps
+- Feel free to reach out if you have any questions
+
+Good luck with your interview! We look forward to our conversation.`;
+
+    return {
+      success: true,
+      data: {
+        instructions: fallbackInstructions,
+      },
+    };
   }
 }
