@@ -58,13 +58,25 @@ export interface TranscriptMessage {
  */
 export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boolean) => {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [isAITyping, setIsAITyping] = useState(false);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([
-    { id: 1, type: 'user', text: 'Hello, nice to meet you!', timestamp: new Date() },
+    {
+      id: 1,
+      type: 'ai',
+      text: "Hello! Welcome to your interview. I'm excited to learn more about you and your experience. To get started, could you please introduce yourself and tell me a bit about your background?",
+      timestamp: new Date(Date.now() - 60000),
+    },
     {
       id: 2,
+      type: 'user',
+      text: 'Hello, nice to meet you! Thank you for this opportunity.',
+      timestamp: new Date(Date.now() - 30000),
+    },
+    {
+      id: 3,
       type: 'ai',
-      text: 'Hello! Great to meet you too. How can I help you today?',
-      timestamp: new Date(),
+      text: "Great to meet you too! I can see you're ready to begin. Let's start with some questions about your experience and skills.",
+      timestamp: new Date(Date.now() - 10000),
     },
   ]);
 
@@ -103,17 +115,37 @@ export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boole
           ]);
 
           // Simulate AI response after a delay
-          setTimeout(() => {
-            setTranscriptMessages((prev) => [
-              ...prev,
-              {
-                id: Date.now() + 1,
-                type: 'ai',
-                text: `I understand you said: "${transcript}". How can I help you further?`,
-                timestamp: new Date(),
-              },
-            ]);
-          }, 1000);
+          setIsAITyping(true);
+          setTimeout(
+            () => {
+              const aiResponses = [
+                "That's interesting! Can you tell me more about that experience?",
+                'Great point! How do you think that skill would apply to this role?',
+                'Thank you for sharing that. What challenges did you face in that situation?',
+                'Excellent! Can you walk me through your thought process on that?',
+                'I see. What would you say was the most valuable lesson you learned from that?',
+                'That sounds like a valuable experience. How did you measure your success?',
+                'Interesting approach! What alternative solutions did you consider?',
+                'Good example! How do you stay updated with the latest developments in that area?',
+                'Thank you for that insight. Can you give me another example?',
+                'That demonstrates good problem-solving. What tools or resources did you use?',
+              ];
+
+              const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+
+              setTranscriptMessages((prev) => [
+                ...prev,
+                {
+                  id: Date.now() + 1,
+                  type: 'ai',
+                  text: randomResponse,
+                  timestamp: new Date(),
+                },
+              ]);
+              setIsAITyping(false);
+            },
+            1500 + Math.random() * 1000
+          ); // Vary the delay between 1.5-2.5 seconds
         }
       };
 
@@ -181,5 +213,6 @@ export const useSpeechRecognition = (isInterviewStarted: boolean, isMuted: boole
     recognition,
     stopRecognition,
     addMessage,
+    isAITyping,
   };
 };

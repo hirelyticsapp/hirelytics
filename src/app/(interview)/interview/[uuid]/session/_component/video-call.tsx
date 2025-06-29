@@ -171,7 +171,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
     stopAllRecordings,
   } = useRecording();
 
-  const { transcriptMessages, stopRecognition } = useSpeechRecognition(isInterviewStarted, isMuted);
+  const { transcriptMessages, stopRecognition, isAITyping } = useSpeechRecognition(
+    isInterviewStarted,
+    isMuted
+  );
 
   const {
     takeSnapshot,
@@ -506,8 +509,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
       {/* Main Content Area - Single unified layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Side - Video Area */}
-        <div className="flex-1 relative bg-muted overflow-hidden">
+        {/* Left Side - Video Area - 60% width */}
+        <div className="w-[60%] relative bg-muted overflow-hidden">
           {/* Main User Camera */}
           <div className="w-full h-full relative flex items-center justify-center">
             {/* 
@@ -635,9 +638,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
           </div>
         </div>
 
-        {/* Right Side - Chat Transcript (Hidden on mobile, shown on desktop) */}
-        <div className="hidden md:flex w-80 lg:w-96 bg-card border-l border-border flex-shrink-0">
-          <ChatTranscript messages={transcriptMessages} />
+        {/* Right Side - Chat Transcript - 40% width (Hidden on mobile, shown on desktop) */}
+        <div className="hidden md:flex w-[40%] bg-card border-l border-border flex-shrink-0">
+          <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
         </div>
 
         {/* Mobile Chat Overlay (only on mobile when toggled) */}
@@ -655,7 +658,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
               </Button>
             </div>
             <div className="h-64 overflow-y-auto">
-              <ChatTranscript messages={transcriptMessages} />
+              <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
             </div>
           </div>
         )}
