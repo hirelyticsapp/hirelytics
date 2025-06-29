@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { updateJobApplicationLanguage, uploadScreenImage } from '@/actions/job-application';
-import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import custom hooks for managing different aspects of the video call
 import { useMediaStream } from '../hooks/use-media-stream';
@@ -118,9 +118,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
 
   // UI state
   const [showDeviceSelector, setShowDeviceSelector] = useState(false);
-  const [showMobileChat, setShowMobileChat] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+
+  // Mobile detection
+  const isMobile = useIsMobile();
 
   // Video element refs for rendering streams
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -507,159 +509,165 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
         </div>
       </header>
 
-      {/* Main Content Area - Single unified layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Side - Video Area - 60% width */}
-        <div className="w-[60%] relative bg-muted overflow-hidden">
-          {/* Main User Camera */}
-          <div className="w-full h-full relative flex items-center justify-center">
-            {/* 
-              Video Layout Hierarchy:
-              - User Video: Always full screen/area (base layer)
-              - AI Video: Always top-right corner (z-20)
-              - Screen Share: Always bottom-right corner when active (z-15)
-              - Status Indicators: Top-left corner (z-10)
-            */}
-            <UserVideoFeed
-              videoRef={videoRef}
-              isCameraOff={isCameraOff}
-              isUserSpeaking={isUserSpeaking}
-            />
-
-            {/* Status Indicators */}
-            <div className="absolute top-4 left-4 flex flex-col space-y-2 z-10">
-              {isMuted && (
-                <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
-                  Muted
-                </div>
-              )}
-              {isCameraRecording && (
-                <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs animate-pulse">
-                  ● Recording
-                </div>
-              )}
-            </div>
-
-            {/* AI Video Feed - Always Top Right Corner of User Video */}
-            <div className="absolute top-4 right-4 w-32 h-24 md:w-48 md:h-36 z-20">
-              <AIVideoFeed isAISpeaking={isAISpeaking} />
-            </div>
-
-            {/* Screen Share - Always Bottom Right Corner of User Video (when active) */}
-            {((isScreenSharing && screenStream) ||
-              (isMonitoringScreenSharing && monitoringScreenStream)) && (
-              <div className="absolute bottom-4 right-4 w-48 h-32 md:w-64 md:h-40 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-15">
-                <video
-                  ref={screenRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-contain bg-muted"
+      {/* Main Content Area - Responsive layout */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Mobile Layout */}
+        {isMobile ? (
+          <>
+            {/* Top Section - Camera Views (40% height, 50% user + 50% AI) */}
+            <div className="w-full h-[40%] flex bg-muted">
+              {/* User Camera - 50% */}
+              <div className="w-1/2 h-full relative bg-muted">
+                <UserVideoFeed
+                  videoRef={videoRef}
+                  isCameraOff={isCameraOff}
+                  isUserSpeaking={isUserSpeaking}
                 />
-                {/* Screen share label */}
-                <div className="absolute top-1 left-1 bg-primary px-2 py-1 rounded text-xs text-primary-foreground">
-                  {isMonitoringScreenSharing ? 'Screen Monitoring' : 'Screen Share'}
+
+                {/* Status Indicators */}
+                <div className="absolute top-2 left-2 flex flex-col space-y-1 z-10">
+                  {isMuted && (
+                    <div className="bg-destructive text-destructive-foreground px-1 py-1 rounded text-xs">
+                      Muted
+                    </div>
+                  )}
+                  {isCameraRecording && (
+                    <div className="bg-destructive text-destructive-foreground px-1 py-1 rounded text-xs animate-pulse">
+                      ● Rec
+                    </div>
+                  )}
                 </div>
 
-                {/* Screen Recording Controls - Compact */}
-                {/* <div className="absolute bottom-1 left-1 flex space-x-1">
-                  {!isScreenRecording ? (
-                    <Button
-                      size="sm"
-                      onClick={handleStartScreenRecording}
-                      variant="default"
-                      className="text-xs px-2 py-1 h-6"
-                    >
-                      Rec
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={stopScreenRecording}
-                      variant="destructive"
-                      className="text-xs px-2 py-1 h-6 animate-pulse"
-                    >
-                      Stop
-                    </Button>
-                  )}
-
-                  {screenRecordedChunks.length > 0 && !isScreenRecording && (
-                    <Button
-                      size="sm"
-                      onClick={downloadScreenRecording}
-                      variant="secondary"
-                      className="text-xs px-1 py-1 h-6"
-                    >
-                      <Download size={10} />
-                    </Button>
-                  )}
-                </div> */}
-              </div>
-            )}
-
-            {/* Monitoring Status Indicators */}
-            {(applicationData.sessionInstruction?.cameraMonitoring ||
-              applicationData.sessionInstruction?.screenMonitoring) && (
-              <div className="absolute top-4 right-4 flex flex-col space-y-2 z-10">
-                {/* Screen monitoring requirement indicator */}
-                {applicationData.sessionInstruction?.screenMonitoring &&
-                  isScreenShareRequired &&
-                  !isMonitoringScreenSharing && (
-                    <div className="bg-orange-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-                      Screen sharing required for monitoring
+                {/* Screen Share Overlay (when active) */}
+                {((isScreenSharing && screenStream) ||
+                  (isMonitoringScreenSharing && monitoringScreenStream)) && (
+                  <div className="absolute inset-2 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-15">
+                    <video
+                      ref={screenRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-full object-contain bg-muted"
+                    />
+                    <div className="absolute top-1 left-1 bg-primary px-1 py-0.5 rounded text-xs text-primary-foreground">
+                      {isMonitoringScreenSharing ? 'Screen Monitoring' : 'Screen Share'}
                     </div>
-                  )}
-                {/* Screen monitoring active indicator */}
-                {applicationData.sessionInstruction?.screenMonitoring &&
-                  isMonitoringScreenSharing && (
-                    <div className="bg-green-500 text-white px-2 py-1 rounded text-xs">
-                      Screen monitoring active
-                    </div>
-                  )}
-                {/* Screen sharing error */}
-                {screenShareError && (
-                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
-                    {screenShareError}
-                  </div>
-                )}
-
-                {isUploadingSnapshot && (
-                  <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-                    Uploading monitoring data...
-                  </div>
-                )}
-                {snapshotUploadError && (
-                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
-                    Upload error: {snapshotUploadError}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Right Side - Chat Transcript - 40% width (Hidden on mobile, shown on desktop) */}
-        <div className="hidden md:flex w-[40%] bg-card border-l border-border flex-shrink-0">
-          <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
-        </div>
-
-        {/* Mobile Chat Overlay (only on mobile when toggled) */}
-        {showMobileChat && (
-          <div className="md:hidden absolute inset-x-4 bottom-24 bg-card rounded-lg shadow-xl border border-border max-h-80 overflow-hidden z-30">
-            <div className="p-3 border-b border-border flex justify-between items-center">
-              <h3 className="text-sm font-semibold">Interview Transcript</h3>
-              <Button
-                size="sm"
-                onClick={() => setShowMobileChat(false)}
-                variant="ghost"
-                className="h-6 w-6 p-0"
-              >
-                ×
-              </Button>
+              {/* AI Camera - 50% */}
+              <div className="w-1/2 h-full">
+                <AIVideoFeed isAISpeaking={isAISpeaking} />
+              </div>
             </div>
-            <div className="h-64 overflow-y-auto">
+
+            {/* Bottom Section - Chat (60% height) */}
+            <div className="w-full h-[60%] bg-card border-t border-border">
               <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
             </div>
+          </>
+        ) : (
+          /* Desktop Layout - 60% video + 40% chat */
+          <>
+            {/* Left Side - Video Area - 60% width */}
+            <div className="w-[60%] relative bg-muted overflow-hidden">
+              {/* Main User Camera */}
+              <div className="w-full h-full relative flex items-center justify-center">
+                {/* 
+                  Video Layout Hierarchy:
+                  - User Video: Always full screen/area (base layer)
+                  - AI Video: Always top-right corner (z-20)
+                  - Screen Share: Always bottom-right corner when active (z-15)
+                  - Status Indicators: Top-left corner (z-10)
+                */}
+                <UserVideoFeed
+                  videoRef={videoRef}
+                  isCameraOff={isCameraOff}
+                  isUserSpeaking={isUserSpeaking}
+                />
+
+                {/* Status Indicators */}
+                <div className="absolute top-4 left-4 flex flex-col space-y-2 z-10">
+                  {isMuted && (
+                    <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                      Muted
+                    </div>
+                  )}
+                  {isCameraRecording && (
+                    <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs animate-pulse">
+                      ● Recording
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Video Feed - Always Top Right Corner of User Video */}
+                <div className="absolute top-4 right-4 w-32 h-24 md:w-48 md:h-36 z-20">
+                  <AIVideoFeed isAISpeaking={isAISpeaking} />
+                </div>
+
+                {/* Screen Share - Always Bottom Right Corner of User Video (when active) */}
+                {((isScreenSharing && screenStream) ||
+                  (isMonitoringScreenSharing && monitoringScreenStream)) && (
+                  <div className="absolute bottom-4 right-4 w-48 h-32 md:w-64 md:h-40 rounded-lg overflow-hidden border-2 border-primary shadow-lg z-15">
+                    <video
+                      ref={screenRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-full object-contain bg-muted"
+                    />
+                    {/* Screen share label */}
+                    <div className="absolute top-1 left-1 bg-primary px-2 py-1 rounded text-xs text-primary-foreground">
+                      {isMonitoringScreenSharing ? 'Screen Monitoring' : 'Screen Share'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side - Chat Transcript - 40% width */}
+            <div className="w-[40%] bg-card border-l border-border flex-shrink-0">
+              <ChatTranscript messages={transcriptMessages} isAITyping={isAITyping} />
+            </div>
+          </>
+        )}
+
+        {/* Monitoring Status Indicators (for both layouts) */}
+        {(applicationData.sessionInstruction?.cameraMonitoring ||
+          applicationData.sessionInstruction?.screenMonitoring) && (
+          <div className="absolute top-4 right-4 flex flex-col space-y-2 z-10">
+            {/* Screen monitoring requirement indicator */}
+            {applicationData.sessionInstruction?.screenMonitoring &&
+              isScreenShareRequired &&
+              !isMonitoringScreenSharing && (
+                <div className="bg-orange-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                  Screen sharing required for monitoring
+                </div>
+              )}
+            {/* Screen monitoring active indicator */}
+            {applicationData.sessionInstruction?.screenMonitoring && isMonitoringScreenSharing && (
+              <div className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+                Screen monitoring active
+              </div>
+            )}
+            {/* Screen sharing error */}
+            {screenShareError && (
+              <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                {screenShareError}
+              </div>
+            )}
+
+            {isUploadingSnapshot && (
+              <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                Uploading monitoring data...
+              </div>
+            )}
+            {snapshotUploadError && (
+              <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                Upload error: {snapshotUploadError}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -667,18 +675,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ applicationData }) => {
       {/* Bottom Controls Panel - Always at bottom, separate from content */}
       <div className="bg-card border-t border-border p-3 md:p-4 flex-shrink-0">
         <div className="flex justify-center items-center space-x-2">
-          {/* Mobile Chat Toggle (only on mobile) */}
-          <div className="md:hidden">
-            <Button
-              size="sm"
-              onClick={() => setShowMobileChat(!showMobileChat)}
-              variant={showMobileChat ? 'default' : 'outline'}
-              className="px-3 py-2"
-            >
-              Chat
-            </Button>
-          </div>
-
           {/* Main Media Controls */}
           <MediaControls
             isMuted={isMuted}
