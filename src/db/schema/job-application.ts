@@ -67,6 +67,48 @@ export interface IInterviewState {
   isWaitingForFinalQuestions?: boolean;
 }
 
+export interface IInterviewAnalysis {
+  overallScore: number; // Overall score out of 100
+  skillsAssessment: Array<{
+    skill: string;
+    score: number; // Score out of 100
+    feedback: string;
+    evidence: string[]; // Quotes from user responses
+  }>;
+  questionAnalysis: Array<{
+    questionId: string;
+    question: string;
+    userResponse: string;
+    categoryType: string;
+    score: number; // Score out of 100
+    feedback: string;
+    strengths: string[];
+    areasForImprovement: string[];
+  }>;
+  strengths: string[];
+  areasForImprovement: string[];
+  recommendation: 'strong_hire' | 'hire' | 'borderline' | 'no_hire';
+  recommendationReason: string;
+  detailedFeedback: string;
+  communicationSkills: {
+    clarity: number;
+    confidence: number;
+    articulation: number;
+    feedback: string;
+  };
+  technicalCompetency: {
+    score: number;
+    feedback: string;
+    keyInsights: string[];
+  };
+  culturalFit: {
+    score: number;
+    feedback: string;
+    alignmentAreas: string[];
+  };
+  analyzedAt: Date;
+}
+
 export interface IQuestionCategoryConfig {
   type: string; // e.g., 'technical-coding', 'behavioral', etc.
   numberOfQuestions: number; // Number of questions for this specific category
@@ -81,6 +123,7 @@ export interface IJobApplication extends Document {
   monitoringImages?: MonitoringImage;
   interviewConversation?: IInterviewConversation[]; // Store all AI questions and user answers
   interviewState?: IInterviewState; // Track interview progress and state
+  interviewAnalysis?: IInterviewAnalysis; // Store interview analysis results
   candidate: {
     email: string; // Email of the candidate
     name: string; // Name of the candidate
@@ -194,6 +237,54 @@ const JobApplicationSchema = new Schema<IJobApplication>(
       lastActivityAt: { type: Date },
       estimatedCompletion: { type: Date },
       isWaitingForFinalQuestions: { type: Boolean, default: false },
+    },
+    interviewAnalysis: {
+      overallScore: { type: Number, min: 0, max: 100 },
+      skillsAssessment: [
+        {
+          skill: { type: String, required: true },
+          score: { type: Number, min: 0, max: 100, required: true },
+          feedback: { type: String, required: true },
+          evidence: [{ type: String }],
+        },
+      ],
+      questionAnalysis: [
+        {
+          questionId: { type: String, required: true },
+          question: { type: String, required: true },
+          userResponse: { type: String, required: true },
+          categoryType: { type: String, required: true },
+          score: { type: Number, min: 0, max: 100, required: true },
+          feedback: { type: String, required: true },
+          strengths: [{ type: String }],
+          areasForImprovement: [{ type: String }],
+        },
+      ],
+      strengths: [{ type: String }],
+      areasForImprovement: [{ type: String }],
+      recommendation: {
+        type: String,
+        enum: ['strong_hire', 'hire', 'borderline', 'no_hire'],
+      },
+      recommendationReason: { type: String },
+      detailedFeedback: { type: String },
+      communicationSkills: {
+        clarity: { type: Number, min: 0, max: 100 },
+        confidence: { type: Number, min: 0, max: 100 },
+        articulation: { type: Number, min: 0, max: 100 },
+        feedback: { type: String },
+      },
+      technicalCompetency: {
+        score: { type: Number, min: 0, max: 100 },
+        feedback: { type: String },
+        keyInsights: [{ type: String }],
+      },
+      culturalFit: {
+        score: { type: Number, min: 0, max: 100 },
+        feedback: { type: String },
+        alignmentAreas: [{ type: String }],
+      },
+      analyzedAt: { type: Date },
     },
     candidate: {
       email: { type: String, required: true },

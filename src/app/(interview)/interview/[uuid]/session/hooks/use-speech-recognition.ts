@@ -122,6 +122,21 @@ export const useSpeechRecognition = (
 
           if (response.phase) {
             setCurrentPhase(response.phase);
+          } else {
+            // If no phase is returned, advance based on current phase
+            if (currentPhase.current === 'introduction') {
+              setCurrentPhase({
+                current: 'candidate_intro',
+                questionIndex: 0,
+                totalQuestions: currentPhase.totalQuestions,
+              });
+            } else if (currentPhase.current === 'candidate_intro') {
+              setCurrentPhase({
+                current: 'questions',
+                questionIndex: 1,
+                totalQuestions: currentPhase.totalQuestions,
+              });
+            }
           }
         }
       } catch (error) {
@@ -198,41 +213,58 @@ export const useSpeechRecognition = (
           // Generate AI response using server action
           setIsAITyping(true);
 
-          // Move to candidate introduction phase after the AI introduction
-          const nextPhase: InterviewPhase = {
-            current: 'candidate_intro',
-            questionIndex: 0,
-            totalQuestions: currentPhase.totalQuestions, // Use dynamic value from state
-          };
+          // Update conversation history with the user message first
+          const updatedConversationHistory = [...conversationHistory, userConversationMessage];
 
           generateAIInterviewResponseWithUuid(
-            [...conversationHistory, userConversationMessage],
+            updatedConversationHistory,
             transcript,
             applicationUuid,
-            nextPhase
+            currentPhase
           )
             .then(async (response) => {
-              if (response.success && response.nextQuestion) {
-                const aiMessage: TranscriptMessage = {
-                  id: Date.now() + 1,
-                  type: 'ai',
-                  text: response.nextQuestion,
-                  timestamp: new Date(),
-                };
+              if (response.success) {
+                // Display feedback if available
+                if (response.feedback) {
+                  const feedbackMessage: TranscriptMessage = {
+                    id: Date.now() + 1,
+                    type: 'ai',
+                    text: response.feedback,
+                    timestamp: new Date(),
+                  };
+                  setTranscriptMessages((prev) => [...prev, feedbackMessage]);
+                }
 
-                setTranscriptMessages((prev) => [...prev, aiMessage]);
+                // Display next question or closing message
+                if (response.nextQuestion) {
+                  const aiMessage: TranscriptMessage = {
+                    id: Date.now() + 2,
+                    type: 'ai',
+                    text: response.nextQuestion,
+                    timestamp: new Date(),
+                  };
+                  setTranscriptMessages((prev) => [...prev, aiMessage]);
 
-                const aiConversationMessage: ConversationMessage = {
-                  role: 'assistant',
-                  content: response.nextQuestion,
-                  timestamp: new Date(),
-                };
+                  const aiConversationMessage: ConversationMessage = {
+                    role: 'assistant',
+                    content: response.nextQuestion,
+                    timestamp: new Date(),
+                  };
 
-                setConversationHistory((prev) => [...prev, aiConversationMessage]);
+                  setConversationHistory((prev) => [...prev, aiConversationMessage]);
+                }
 
-                // Update phase
+                // Update phase and handle interview completion
                 if (response.phase) {
                   setCurrentPhase(response.phase);
+
+                  // Check if interview is complete
+                  if (response.phase.current === 'closing') {
+                    // Interview is complete, redirect to analysis page after a delay
+                    setTimeout(() => {
+                      window.location.href = `/interview/${applicationUuid}/analysis`;
+                    }, 3000); // 3 second delay to let user read the closing message
+                  }
                 }
               } else {
                 // Generic fallback response on error
@@ -254,6 +286,21 @@ export const useSpeechRecognition = (
                 };
 
                 setConversationHistory((prev) => [...prev, aiConversationMessage]);
+
+                // Advance phase on fallback
+                if (currentPhase.current === 'introduction') {
+                  setCurrentPhase({
+                    current: 'candidate_intro',
+                    questionIndex: 0,
+                    totalQuestions: currentPhase.totalQuestions,
+                  });
+                } else if (currentPhase.current === 'candidate_intro') {
+                  setCurrentPhase({
+                    current: 'questions',
+                    questionIndex: 1,
+                    totalQuestions: currentPhase.totalQuestions,
+                  });
+                }
               }
               setIsAITyping(false);
             })
@@ -278,6 +325,27 @@ export const useSpeechRecognition = (
               };
 
               setConversationHistory((prev) => [...prev, aiConversationMessage]);
+
+              // Advance phase on error
+              if (currentPhase.current === 'introduction') {
+                setCurrentPhase({
+                  current: 'candidate_intro',
+                  questionIndex: 0,
+                  totalQuestions: currentPhase.totalQuestions,
+                });
+              } else if (currentPhase.current === 'candidate_intro') {
+                setCurrentPhase({
+                  current: 'questions',
+                  questionIndex: 1,
+                  totalQuestions: currentPhase.totalQuestions,
+                });
+              } else if (currentPhase.current === 'questions') {
+                setCurrentPhase({
+                  current: 'questions',
+                  questionIndex: currentPhase.questionIndex + 1,
+                  totalQuestions: currentPhase.totalQuestions,
+                });
+              }
 
               setIsAITyping(false);
             });
